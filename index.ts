@@ -16,21 +16,32 @@ export function run() {
   ) as Array<HTMLInputElement>;
   triggers.forEach((e) => {
     const trigger = e.getAttribute("data-trigger");
+    let enabled = false;
+
+    const doit = debounce(() => {
+      raiseEvent(trigger);
+      if (!enabled) return;
+      requestAnimationFrame(doit);
+    }, 100);
 
     if (e.classList.contains("as-keypress")) {
-      let enabled = false;
-      const doit = () => raiseEvent(trigger);
-      setInterval(() => enabled && doit(), 100);
-      e.addEventListener("mouseup", (e) => {
-        enabled = false;
-      });
       e.addEventListener("mousedown", (e) => {
         enabled = true;
-      });
-      e.addEventListener("touchstart", (e) => {
-        enabled = true;
+        doit();
         e.preventDefault();
       });
+
+      e.addEventListener("touchstart", (e) => {
+        enabled = true;
+        doit();
+        e.preventDefault();
+      });
+
+      e.addEventListener("mouseup", (e) => {
+        enabled = false;
+        e.preventDefault();
+      });
+
       e.addEventListener("touchend", (e) => {
         enabled = false;
         e.preventDefault();
@@ -48,20 +59,16 @@ export function run() {
   const weight = document.getElementById("weight") as HTMLInputElement;
   const reps = document.getElementById("reps") as HTMLInputElement;
 
+  exercise.addEventListener("click", () => (exercise.value = ""));
   const exercises = JSON.parse(
     localStorage.getItem("exercises") || "[]"
-  ) as Array<{
-    tick: number;
-    exercise: string;
-    weight: number;
-    reps: number;
-  }>;
+  ) as Array<WorkoutSet>;
 
   exercise.addEventListener("change", () => {
     const exerciseValue = exercise.value;
     const rows = exercises
       .filter((d) => d.exercise === exerciseValue)
-      .sort((a, b) => a.tick - b.tick);
+      .sort((a, b) => b.tick - a.tick);
     updateReport(report, rows);
   });
 
@@ -69,19 +76,23 @@ export function run() {
   [exercise].forEach(behaviorClearOnFocus);
 
   on("increment-reps", () => {
-    reps.value = (parseInt(reps.value || "0") + 1).toString();
+    reps.focus();
+    increment(reps, 1);
   });
 
   on("increment-weight", () => {
-    weight.value = (parseInt(weight.value || "0") + 1).toString();
+    weight.focus();
+    increment(weight, 1);
   });
 
   on("decrement-reps", () => {
-    reps.value = (parseInt(reps.value || "0") - 1).toString();
+    reps.focus();
+    increment(reps, -1);
   });
 
   on("decrement-weight", () => {
-    weight.value = (parseInt(weight.value || "0") - 1).toString();
+    weight.focus();
+    increment(weight, -1);
   });
 
   on("clear", () => {
@@ -106,12 +117,14 @@ export function run() {
       addExerciseToDropdown(exerciseValue, exercisesDom);
     }
 
-    exercises.push({
+    const exerciseData = {
       tick: Date.now(),
       exercise: exerciseValue,
       weight: weightValue,
       reps: repValue,
-    });
+    };
+    exercises.push(exerciseData);
+    insertReportItem(report, exerciseData);
 
     localStorage.setItem("exercises", JSON.stringify(exercises));
     raiseEvent("saved");
@@ -128,6 +141,10 @@ export function run() {
       toaster.classList.add("hidden");
     }, 1000);
   });
+}
+
+function increment(reps: HTMLInputElement, amount: number) {
+  reps.value = (parseInt(reps.value || "0") + amount).toString();
 }
 
 function addExerciseToDropdown(
@@ -168,21 +185,44 @@ function behaviorClearOnFocus(e: HTMLInputElement) {
   e.addEventListener("focus", () => (e.value = ""));
 }
 
-function updateReport(
-  report: HTMLTableElement,
-  rows: { tick: number; exercise: string; weight: number; reps: number }[]
-) {
-  const html = rows.map(
-    (r) =>
-      `<tr><td class="align-left">${asDate(
-        r.tick
-      )}</td><td class="align-right">${r.reps}</td><td class="align-right">${
-        r.weight
-      }</td></tr>`
-  );
+interface WorkoutSet {
+  tick: number;
+  exercise: string;
+  weight: number;
+  reps: number;
+}
+
+function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
+  const html = rows.map((r) => createReportRow(r));
   report.innerHTML = html.join("");
 }
 
+function insertReportItem(report: HTMLTableElement, row: WorkoutSet) {
+  const html = createReportRow(row);
+  report.insertAdjacentHTML("afterbegin", html);
+}
+
+function createReportRow(r: WorkoutSet): string {
+  return `<tr><td class="align-left">${asDate(
+    r.tick
+  )}</td><td class="align-right">${r.reps}</td><td class="align-right">${
+    r.weight
+  }</td></tr>`;
+}
+
 function asDate(tick: number) {
-  return new Date(tick).toLocaleDateString();
+  const dtSec = Math.floor((Date.now() - tick) / 1000);
+  if (dtSec < 60) return `${dtSec} seconds ago`;
+  if (dtSec < 3600) return `${Math.floor(dtSec / 60)} minutes ago`;
+  if (dtSec < 86400) return `${Math.floor(dtSec / 3600)} hours ago`;
+  return `${Math.floor(dtSec / 86400)} days ago`;
+}
+
+function debounce<T extends Function>(cb: T, wait = 20) {
+  let h = 0;
+  let callable = (...args: any) => {
+    clearTimeout(h);
+    h = setTimeout(() => cb(...args), wait);
+  };
+  return <T>(<any>callable);
 }
