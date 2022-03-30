@@ -1,4 +1,16 @@
 export function run() {
+  const exerciseDataset = JSON.parse(
+    localStorage.getItem("exerciseDataset") || "[]"
+  ) as Array<{ id: string }>;
+
+  const exercisesDom = document.getElementById(
+    "exercises"
+  ) as HTMLDataListElement;
+
+  exerciseDataset.forEach((x) => {
+    addExerciseToDropdown(x.id, exercisesDom);
+  });
+
   const triggers = Array.from(
     document.querySelectorAll("[data-trigger]")
   ) as Array<HTMLInputElement>;
@@ -62,11 +74,19 @@ export function run() {
 
   on("save", () => {
     if (!form.reportValidity()) return;
+
+    const exerciseValue = exercise.value;
     const weightValue = parseInt(weight.value || "0");
     const repValue = parseInt(reps.value || "0");
 
     const work = weightValue * repValue;
     if (work <= 0) return;
+
+    if (!exerciseDataset.find((e) => e.id === exerciseValue)) {
+      exerciseDataset.push({ id: exerciseValue });
+      localStorage.setItem("exerciseDataset", JSON.stringify(exerciseDataset));
+      addExerciseToDropdown(exerciseValue, exercisesDom);
+    }
 
     const exercises = JSON.parse(
       localStorage.getItem("exercises") || "[]"
@@ -79,7 +99,7 @@ export function run() {
 
     exercises.push({
       tick: Date.now(),
-      exercise: exercise.value,
+      exercise: exerciseValue,
       weight: weightValue,
       reps: repValue,
     });
@@ -99,6 +119,16 @@ export function run() {
       toaster.classList.add("hidden");
     }, 1000);
   });
+}
+
+function addExerciseToDropdown(
+  exerciseValue: string,
+  exercisesDom: HTMLDataListElement
+) {
+  const option = document.createElement("option");
+  option.value = exerciseValue;
+  option.innerText = exerciseValue;
+  exercisesDom.appendChild(option);
 }
 
 // raise an HTML event
