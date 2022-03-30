@@ -87,3 +87,27 @@ button {
 .hidden {
   display: none;
 }
+
+.fill-width {
+  width: 100%;
+}
+
+.align-left {
+  text-align: left;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.pad {
+  padding: 1rem;
+}
+
+.pad2 {
+  padding: 2rem;
+}
+
+.underline {
+  text-decoration: underline;
+}

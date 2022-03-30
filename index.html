@@ -69,6 +69,21 @@
       <div class="col2 center bright hidden" id="toaster">Notifications</div>
       <button type="button" class="col3" data-trigger="clear">Clear</button>
     </form>
+    <div class="spacer"></div>
+    <table class="pad2 fill-width">
+      <thead>
+        <th class="underline align-left">Date</th>
+        <th class="underline align-right">Weight</th>
+        <th class="underline align-right">Reps</th>
+      </thead>
+      <tbody id="report-body">
+        <tr>
+          <td class="align-left">Today</td>
+          <td class="align-right">100</td>
+          <td class="align-right">20</td>
+        </tr>
+      </tbody>
+    </table>
     <script type="module">
       import { run } from "./dist/index.js";
       run();

@@ -42,10 +42,28 @@ export function run() {
     }
   });
 
+  const report = document.getElementById("report-body") as HTMLTableElement;
   const form = document.getElementById("form") as HTMLFormElement;
   const exercise = document.getElementById("exercise") as HTMLInputElement;
   const weight = document.getElementById("weight") as HTMLInputElement;
   const reps = document.getElementById("reps") as HTMLInputElement;
+
+  const exercises = JSON.parse(
+    localStorage.getItem("exercises") || "[]"
+  ) as Array<{
+    tick: number;
+    exercise: string;
+    weight: number;
+    reps: number;
+  }>;
+
+  exercise.addEventListener("change", () => {
+    const exerciseValue = exercise.value;
+    const rows = exercises
+      .filter((d) => d.exercise === exerciseValue)
+      .sort((a, b) => a.tick - b.tick);
+    updateReport(report, rows);
+  });
 
   [weight, reps].forEach(behaviorSelectAllOnFocus);
   [exercise].forEach(behaviorClearOnFocus);
@@ -87,15 +105,6 @@ export function run() {
       localStorage.setItem("exerciseDataset", JSON.stringify(exerciseDataset));
       addExerciseToDropdown(exerciseValue, exercisesDom);
     }
-
-    const exercises = JSON.parse(
-      localStorage.getItem("exercises") || "[]"
-    ) as Array<{
-      tick: number;
-      exercise: string;
-      weight: number;
-      reps: number;
-    }>;
 
     exercises.push({
       tick: Date.now(),
@@ -157,4 +166,23 @@ function behaviorSelectAllOnFocus(e: HTMLInputElement) {
 
 function behaviorClearOnFocus(e: HTMLInputElement) {
   e.addEventListener("focus", () => (e.value = ""));
+}
+
+function updateReport(
+  report: HTMLTableElement,
+  rows: { tick: number; exercise: string; weight: number; reps: number }[]
+) {
+  const html = rows.map(
+    (r) =>
+      `<tr><td class="align-left">${asDate(
+        r.tick
+      )}</td><td class="align-right">${r.reps}</td><td class="align-right">${
+        r.weight
+      }</td></tr>`
+  );
+  report.innerHTML = html.join("");
+}
+
+function asDate(tick: number) {
+  return new Date(tick).toLocaleDateString();
 }
