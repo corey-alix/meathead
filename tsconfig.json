@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "esnext" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "module": "esnext" /* Specify what module code is generated. */,
+    "noEmitOnError": true /* Do not emit outputs if any errors were reported. */,
+    "esModuleInterop": true /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables `allowSyntheticDefaultImports` for type compatibility. */,
+    "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
+    "strict": true /* Enable all strict type-checking options. */,
+    "outDir": "./dist" /* Redirect output structure to the directory. */,
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */
+  }
+}

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Meat Head</title>
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+  <body class="dark">
+    <form id="form" class="container grid">
+      <h2 class="col1-3">Exercise</h2>
+      <input
+        required
+        class="col1-3"
+        type="list"
+        id="exercise"
+        placeholder="Exercise"
+        list="exercises"
+      />
+      <datalist id="exercises">
+        <option value="UPB">Bench Press</option>
+        <option value="UPD">Dumbell Press - Overhead</option>
+        <option value="LPH">Leg Press Horizontal</option>
+        <option value="LBS">Leg Bodyweight Squat</option>
+      </datalist>
+      <h2 class="col1-3">Weight</h2>
+      <input
+        type="button"
+        class="col1 action"
+        value="‒"
+        data-trigger="decrement-weight"
+      />
+      <input
+        required
+        class="col2"
+        type="number"
+        id="weight"
+        value="20"
+        min="1"
+        max="9999"
+        step="1"
+      />
+      <input
+        type="button"
+        class="col3 action"
+        value="+"
+        data-trigger="increment-weight"
+      />
+      <h2 class="col1-3">Reps</h2>
+      <input
+        type="button"
+        class="col1 action"
+        value="‒"
+        data-trigger="decrement-reps"
+      />
+      <input
+        required
+        class="col2"
+        type="number"
+        id="reps"
+        value="0"
+        min="1"
+        max="9999"
+        step="1"
+      />
+      <input
+        type="button"
+        class="col3 action"
+        value="+"
+        data-trigger="increment-reps"
+      />
+      <span class="spacer col1-3"></span>
+      <button type="button" class="col1" data-trigger="save">Save</button>
+      <div class="col2 center bright hidden" id="toaster">Notifications</div>
+      <button type="button" class="col3" data-trigger="clear">Clear</button>
+    </form>
+    <script type="module">
+      import { run } from "./dist/index.js";
+      run();
+    </script>
+  </body>
+</html>

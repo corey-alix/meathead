@@ -1,0 +1,22 @@
+{
+  "name": "meathead",
+  "version": "1.0.0",
+  "description": "Weight Training App",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/corey-alix/meathead.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/corey-alix/meathead/issues"
+  },
+  "homepage": "https://github.com/corey-alix/meathead#readme",
+  "dependencies": {
+    "typescript": "^4.6.3"
+  }
+}
