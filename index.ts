@@ -1,10 +1,33 @@
 export function run() {
-  const triggers = Array.from(document.querySelectorAll("[data-trigger]"));
+  const triggers = Array.from(
+    document.querySelectorAll("[data-trigger]")
+  ) as Array<HTMLInputElement>;
   triggers.forEach((e) => {
     const trigger = e.getAttribute("data-trigger");
-    e.addEventListener("click", () => {
-      raiseEvent(trigger);
-    });
+
+    if (e.classList.contains("as-keypress")) {
+      let enabled = false;
+      const doit = () => raiseEvent(trigger);
+      setInterval(() => enabled && doit(), 100);
+      e.addEventListener("mouseup", (e) => {
+        enabled = false;
+      });
+      e.addEventListener("mousedown", (e) => {
+        enabled = true;
+      });
+      e.addEventListener("touchstart", (e) => {
+        enabled = true;
+        e.preventDefault();
+      });
+      e.addEventListener("touchend", (e) => {
+        enabled = false;
+        e.preventDefault();
+      });
+    } else {
+      e.addEventListener("click", () => {
+        raiseEvent(trigger);
+      });
+    }
   });
 
   const form = document.getElementById("form") as HTMLFormElement;
@@ -103,6 +126,5 @@ function behaviorSelectAllOnFocus(e: HTMLInputElement) {
 }
 
 function behaviorClearOnFocus(e: HTMLInputElement) {
-    e.addEventListener("focus", () => e.value = "");
-  }
-  
+  e.addEventListener("focus", () => (e.value = ""));
+}

@@ -1,11 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta
-      scale="viewport"
-      content="width=device-width, initial-scale=1.0, user-scalable=no"
-    />
+    <meta scale="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meat Head</title>
     <link rel="stylesheet" href="./index.css" />
   </head>
@@ -29,7 +26,7 @@
       <h2 class="col1-3">Weight</h2>
       <input
         type="button"
-        class="col1 action"
+        class="col1 action as-keypress"
         value="‒"
         data-trigger="decrement-weight"
       />
@@ -38,21 +35,21 @@
         class="col2"
         type="number"
         id="weight"
-        value="20"
+        value=""
         min="1"
         max="9999"
         step="1"
       />
       <input
         type="button"
-        class="col3 action"
+        class="col3 action as-keypress"
         value="+"
         data-trigger="increment-weight"
       />
       <h2 class="col1-3">Reps</h2>
       <input
         type="button"
-        class="col1 action"
+        class="col1 action as-keypress"
         value="‒"
         data-trigger="decrement-reps"
       />
@@ -61,14 +58,14 @@
         class="col2"
         type="number"
         id="reps"
-        value="0"
+        value=""
         min="1"
         max="9999"
         step="1"
       />
       <input
         type="button"
-        class="col3 action"
+        class="col3 action as-keypress"
         value="+"
         data-trigger="increment-reps"
       />
