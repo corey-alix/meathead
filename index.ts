@@ -12,6 +12,9 @@ export function run() {
   const weight = document.getElementById("weight") as HTMLInputElement;
   const reps = document.getElementById("reps") as HTMLInputElement;
 
+  [weight, reps].forEach(behaviorSelectAllOnFocus);
+  [exercise].forEach(behaviorClearOnFocus);
+
   on("increment-reps", () => {
     reps.value = (parseInt(reps.value || "0") + 1).toString();
   });
@@ -94,3 +97,12 @@ function on(trigger: string, callback: () => void) {
     callback();
   });
 }
+
+function behaviorSelectAllOnFocus(e: HTMLInputElement) {
+  e.addEventListener("focus", () => e.select());
+}
+
+function behaviorClearOnFocus(e: HTMLInputElement) {
+    e.addEventListener("focus", () => e.value = "");
+  }
+  
