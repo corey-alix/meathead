@@ -69,15 +69,19 @@ export function run() {
   ) as Array<WorkoutSet>;
 
   exercise.addEventListener("change", () => {
+    raiseEvent("update-report");
+  });
+
+  [weight, reps].forEach(behaviorSelectAllOnFocus);
+  [exercise].forEach(behaviorClearOnFocus);
+
+  on("update-report", () => {
     const exerciseValue = exercise.value;
     const rows = exercises
       .filter((d) => d.exercise === exerciseValue)
       .sort((a, b) => b.tick - a.tick);
     updateReport(report, rows);
   });
-
-  [weight, reps].forEach(behaviorSelectAllOnFocus);
-  [exercise].forEach(behaviorClearOnFocus);
 
   on("exercise-clear", () => updateReport(report, []));
 
@@ -135,6 +139,7 @@ export function run() {
 
     localStorage.setItem("exercises", JSON.stringify(exercises));
     raiseEvent("saved");
+    raiseEvent("update-report");
   });
 
   on("saved", () => {
