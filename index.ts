@@ -59,7 +59,11 @@ export function run() {
   const weight = document.getElementById("weight") as HTMLInputElement;
   const reps = document.getElementById("reps") as HTMLInputElement;
 
-  exercise.addEventListener("click", () => (exercise.value = ""));
+  exercise.addEventListener("click", () => {
+    exercise.value = "";
+    raiseEvent("exercise-clear");
+  });
+
   const exercises = JSON.parse(
     localStorage.getItem("exercises") || "[]"
   ) as Array<WorkoutSet>;
@@ -74,6 +78,8 @@ export function run() {
 
   [weight, reps].forEach(behaviorSelectAllOnFocus);
   [exercise].forEach(behaviorClearOnFocus);
+
+  on("exercise-clear", () => updateReport(report, []));
 
   on("increment-reps", () => {
     reps.focus();
@@ -99,6 +105,7 @@ export function run() {
     weight.value = "";
     reps.value = "";
     exercise.value = "";
+    raiseEvent("exercise-clear");
   });
 
   on("save", () => {
@@ -195,11 +202,13 @@ interface WorkoutSet {
 function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
   const html = rows.map((r) => createReportRow(r));
   report.innerHTML = html.join("");
+  report.parentElement?.classList.toggle("hidden", rows.length === 0);
 }
 
 function insertReportItem(report: HTMLTableElement, row: WorkoutSet) {
   const html = createReportRow(row);
   report.insertAdjacentHTML("afterbegin", html);
+  report.parentElement?.classList.remove("hidden");
 }
 
 function createReportRow(r: WorkoutSet): string {
