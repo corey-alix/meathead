@@ -1,13 +1,74 @@
+interface WorkoutSet {
+  tick: number;
+  exercise: string;
+  weight: number;
+  reps: number;
+}
+
+interface Exercise {
+  id: string;
+  lastPerformed: number;
+}
+
+class Database {
+  #exercises: Exercise[];
+  #workouts: WorkoutSet[];
+
+  constructor() {
+    this.#exercises = JSON.parse(
+      localStorage.getItem("exerciseDataset") || "[]"
+    ) as Array<Exercise>;
+
+    this.#workouts = JSON.parse(
+      localStorage.getItem("exercises") || "[]"
+    ) as Array<WorkoutSet>;
+  }
+
+  private saveWorkouts() {
+    localStorage.setItem("exercises", JSON.stringify(this.#workouts));
+  }
+
+  private saveExerices() {
+    localStorage.setItem("exerciseDataset", JSON.stringify(this.#exercises));
+  }
+
+  getExercises() {
+    return this.#exercises;
+  }
+
+  getWorkouts(exerciseId: string) {
+    return this.#workouts.filter((w) => w.exercise === exerciseId);
+  }
+
+  addExercise(exercise: Exercise) {
+    this.#exercises.push(exercise);
+    this.saveExerices();
+  }
+
+  updateExercise(exercise: Exercise) {
+    const exerciseModel = this.#exercises.find((d) => d.id == exercise.id);
+    if (!exerciseModel) throw new Error("Exercise not found");
+    exerciseModel.lastPerformed = exercise.lastPerformed;
+    this.saveExerices();
+  }
+
+  addWorkout(workout: WorkoutSet) {
+    this.#workouts.push(workout);
+    this.saveWorkouts();
+  }
+}
+
 export function run() {
-  const exerciseDataset = JSON.parse(
-    localStorage.getItem("exerciseDataset") || "[]"
-  ) as Array<{ id: string }>;
+  const db = new Database();
+  const exerciseStore = db
+    .getExercises()
+    .sort((a, b) => (b.lastPerformed || 0) - (a.lastPerformed || 0));
 
   const exercisesDom = document.getElementById(
     "exercises"
   ) as HTMLDataListElement;
 
-  exerciseDataset.forEach((x) => {
+  exerciseStore.forEach((x) => {
     addExerciseToDropdown(x.id, exercisesDom);
   });
 
@@ -15,11 +76,11 @@ export function run() {
     document.querySelectorAll("[data-trigger]")
   ) as Array<HTMLInputElement>;
   triggers.forEach((e) => {
-    const trigger = e.getAttribute("data-trigger");
+    const eventName = e.getAttribute("data-trigger");
     let enabled = false;
 
     const doit = debounce(() => {
-      raiseEvent(trigger);
+      trigger(eventName);
       if (!enabled) return;
       requestAnimationFrame(doit);
     }, 100);
@@ -48,98 +109,103 @@ export function run() {
       });
     } else {
       e.addEventListener("click", () => {
-        raiseEvent(trigger);
+        trigger(eventName);
       });
     }
   });
 
-  const report = document.getElementById("report-body") as HTMLTableElement;
-  const form = document.getElementById("form") as HTMLFormElement;
-  const exercise = document.getElementById("exercise") as HTMLInputElement;
-  const weight = document.getElementById("weight") as HTMLInputElement;
-  const reps = document.getElementById("reps") as HTMLInputElement;
+  const reportDom = document.getElementById("report-body") as HTMLTableElement;
+  const formDom = document.getElementById("form") as HTMLFormElement;
+  const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
+  const weightDom = document.getElementById("weight") as HTMLInputElement;
+  const repsDom = document.getElementById("reps") as HTMLInputElement;
 
-  exercise.addEventListener("click", () => {
-    exercise.value = "";
-    raiseEvent("exercise-clear");
+  exerciseDom.addEventListener("click", () => {
+    trigger("clear");
   });
 
-  const exercises = JSON.parse(
-    localStorage.getItem("exercises") || "[]"
-  ) as Array<WorkoutSet>;
-
-  exercise.addEventListener("change", () => {
-    raiseEvent("update-report");
+  exerciseDom.addEventListener("change", () => {
+    trigger("update-report");
+    trigger("autofill");
   });
 
-  [weight, reps].forEach(behaviorSelectAllOnFocus);
-  [exercise].forEach(behaviorClearOnFocus);
+  [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
+  [exerciseDom].forEach(behaviorClearOnFocus);
+
+  on("autofill", () => {
+    const lastWorkout = db
+      .getWorkouts(exerciseDom.value)
+      .sort((a, b) => b.tick - a.tick)[0];
+    if (!lastWorkout) return;
+    weightDom.value = lastWorkout.weight.toString();
+    repsDom.value = lastWorkout.reps.toString();
+  });
 
   on("update-report", () => {
-    const exerciseValue = exercise.value;
-    const rows = exercises
-      .filter((d) => d.exercise === exerciseValue)
-      .sort((a, b) => b.tick - a.tick);
-    updateReport(report, rows);
+    const exerciseValue = exerciseDom.value;
+    const rows = db.getWorkouts(exerciseValue).sort((a, b) => b.tick - a.tick);
+    updateReport(reportDom, rows);
   });
 
-  on("exercise-clear", () => updateReport(report, []));
+  on("exercise-clear", () => updateReport(reportDom, []));
 
   on("increment-reps", () => {
-    reps.focus();
-    increment(reps, 1);
+    repsDom.focus();
+    increment(repsDom, 1);
   });
 
   on("increment-weight", () => {
-    weight.focus();
-    increment(weight, 1);
+    weightDom.focus();
+    increment(weightDom, 1);
   });
 
   on("decrement-reps", () => {
-    reps.focus();
-    increment(reps, -1);
+    repsDom.focus();
+    increment(repsDom, -1);
   });
 
   on("decrement-weight", () => {
-    weight.focus();
-    increment(weight, -1);
+    weightDom.focus();
+    increment(weightDom, -1);
   });
 
   on("clear", () => {
-    weight.value = "";
-    reps.value = "";
-    exercise.value = "";
-    raiseEvent("exercise-clear");
+    weightDom.value = "";
+    repsDom.value = "";
+    exerciseDom.value = "";
+    trigger("exercise-clear");
   });
 
   on("save", () => {
-    if (!form.reportValidity()) return;
+    if (!formDom.reportValidity()) return;
 
-    const exerciseValue = exercise.value;
-    const weightValue = parseInt(weight.value || "0");
-    const repValue = parseInt(reps.value || "0");
+    const exerciseValue = exerciseDom.value;
+    const weightValue = parseInt(weightDom.value || "0");
+    const repValue = parseInt(repsDom.value || "0");
 
     const work = weightValue * repValue;
     if (work <= 0) return;
 
-    if (!exerciseDataset.find((e) => e.id === exerciseValue)) {
-      exerciseDataset.push({ id: exerciseValue });
-      localStorage.setItem("exerciseDataset", JSON.stringify(exerciseDataset));
+    const exerciseModel = exerciseStore.find((e) => e.id === exerciseValue);
+    if (!exerciseModel) {
+      db.addExercise({ id: exerciseValue, lastPerformed: Date.now() });
       addExerciseToDropdown(exerciseValue, exercisesDom);
+    } else {
+      db.updateExercise({ id: exerciseValue, lastPerformed: Date.now() });
+      moveExerciseToTop(exerciseValue, exercisesDom);
     }
 
-    const exerciseData = {
+    const workout = {
       tick: Date.now(),
       exercise: exerciseValue,
       weight: weightValue,
       reps: repValue,
     };
-    exercises.push(exerciseData);
-    insertReportItem(report, exerciseData);
+    insertReportItem(reportDom, workout);
 
-    localStorage.setItem("exercises", JSON.stringify(exercises));
-    raiseEvent("saved");
-    raiseEvent("update-report");
+    db.addWorkout(workout);
+    trigger("saved");
+    trigger("update-report");
   });
 
   on("saved", () => {
@@ -166,11 +232,20 @@ function addExerciseToDropdown(
   const option = document.createElement("option");
   option.value = exerciseValue;
   option.innerText = exerciseValue;
-  exercisesDom.appendChild(option);
+  exercisesDom.insertBefore(option, null);
+}
+
+function moveExerciseToTop(
+  exerciseValue: string,
+  exercisesDom: HTMLDataListElement
+) {
+  const option = exercisesDom.querySelector(`option[value="${exerciseValue}"]`);
+  if (!option) return;
+  exercisesDom.insertBefore(option, exercisesDom.firstChild);
 }
 
 // raise an HTML event
-function raiseEvent(trigger: string | null) {
+function trigger(trigger: string | null) {
   if (!trigger) return;
   const event = new CustomEvent(trigger, {
     detail: {
@@ -195,13 +270,6 @@ function behaviorSelectAllOnFocus(e: HTMLInputElement) {
 
 function behaviorClearOnFocus(e: HTMLInputElement) {
   e.addEventListener("focus", () => (e.value = ""));
-}
-
-interface WorkoutSet {
-  tick: number;
-  exercise: string;
-  weight: number;
-  reps: number;
 }
 
 function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {

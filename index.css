@@ -4,6 +4,11 @@
   --color-light: #fff;
   --color-bright: #0ff;
 }
+
+.small {
+  font-size: 1.5rem;
+}
+
 /*
 Defines a dark theme for the index page.
 */
@@ -110,4 +115,8 @@ button {
 
 .underline {
   text-decoration: underline;
+}
+
+.outline {
+  border: solid var(--color-light);
 }
