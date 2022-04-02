@@ -58,11 +58,33 @@ class Database {
   }
 }
 
+let timeOfLastExercise = 0;
+
+const binds = {
+  "time-since-last-exercise": (e: HTMLElement) => {
+    setInterval(() => {
+      e.innerText = asDate(timeOfLastExercise);
+    }, 1000);
+  },
+};
+
+function applyBinds() {
+  Object.entries(binds).forEach(([key, cb]) => {
+    const e = document.querySelector(`[data-bind="${key}"]`) as HTMLElement;
+    if (!e) return;
+    cb(e);
+  });
+}
+
 export function run() {
+  applyBinds();
+
   const db = new Database();
   const exerciseStore = db
     .getExercises()
     .sort((a, b) => (b.lastPerformed || 0) - (a.lastPerformed || 0));
+
+  timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
 
   const exercisesDom = document.getElementById(
     "exercises"
@@ -187,16 +209,20 @@ export function run() {
     if (work <= 0) return;
 
     const exerciseModel = exerciseStore.find((e) => e.id === exerciseValue);
+    timeOfLastExercise = Date.now();
     if (!exerciseModel) {
-      db.addExercise({ id: exerciseValue, lastPerformed: Date.now() });
+      db.addExercise({ id: exerciseValue, lastPerformed: timeOfLastExercise });
       addExerciseToDropdown(exerciseValue, exercisesDom);
     } else {
-      db.updateExercise({ id: exerciseValue, lastPerformed: Date.now() });
+      db.updateExercise({
+        id: exerciseValue,
+        lastPerformed: timeOfLastExercise,
+      });
       moveExerciseToTop(exerciseValue, exercisesDom);
     }
 
     const workout = {
-      tick: Date.now(),
+      tick: timeOfLastExercise,
       exercise: exerciseValue,
       weight: weightValue,
       reps: repValue,

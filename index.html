@@ -8,9 +8,12 @@
   </head>
   <body class="dark">
     <form id="form" class="container grid">
-      <div class="small fill-width center col1 outline">Reserved</div>
-      <div class="small fill-width center col2 outline">Reserved</div>
-      <div class="small fill-width center col3 outline">Reserved</div>
+      <div
+        class="small fill-width center col1 outline"
+        data-bind="time-since-last-exercise"
+      ></div>
+      <div class="small fill-width center col2 outline">Meathead</div>
+      <div class="small fill-width center col3 outline">v1.0.0</div>
       <div class="spacer"></div>
       <input
         required
@@ -79,8 +82,7 @@
         <th class="underline align-right">Reps</th>
         <th class="underline align-right">Weight</th>
       </thead>
-      <tbody id="report-body">
-      </tbody>
+      <tbody id="report-body"></tbody>
     </table>
     <script type="module">
       import { run } from "./dist/index.js";
