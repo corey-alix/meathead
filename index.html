@@ -12,7 +12,7 @@
         class="small fill-width center col1 outline"
         data-bind="time-since-last-exercise"
       ></div>
-      <div class="small fill-width center col2 outline">Meathead</div>
+      <input type="button" class="small fill-width center col2 outline" value="Meathead" data-trigger="show-admin-menu"/>
       <div class="small fill-width center col3 outline">v1.0.0</div>
       <div class="spacer"></div>
       <input
@@ -71,9 +71,9 @@
         data-trigger="increment-reps"
       />
       <span class="spacer col1-3"></span>
-      <button type="button" class="col1" data-trigger="save">Save</button>
+      <button type="button" class="button col1" data-trigger="save">Save</button>
       <div class="col2 center bright hidden" id="toaster">Notifications</div>
-      <button type="button" class="col3" data-trigger="clear">Clear</button>
+      <button type="button" class="button col3" data-trigger="clear">Clear</button>
     </form>
     <div class="spacer"></div>
     <table class="hidden pad2 fill-width">

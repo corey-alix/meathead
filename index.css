@@ -73,7 +73,7 @@ input[type="number"] {
   border-bottom: solid;
 }
 
-button {
+.button {
   background-color: var(--color-dark);
   color: var(--color-light);
   padding: 2rem;

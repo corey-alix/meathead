@@ -45,6 +45,11 @@ class Database {
     this.saveExerices();
   }
 
+  addWorkout(workout: WorkoutSet) {
+    this.#workouts.push(workout);
+    this.saveWorkouts();
+  }
+
   updateExercise(exercise: Exercise) {
     const exerciseModel = this.#exercises.find((d) => d.id == exercise.id);
     if (!exerciseModel) throw new Error("Exercise not found");
@@ -52,9 +57,15 @@ class Database {
     this.saveExerices();
   }
 
-  addWorkout(workout: WorkoutSet) {
-    this.#workouts.push(workout);
+  renameExercise(id: string, name: string) {
+    const exerciseModel = this.#exercises.find((d) => d.id == id);
+    if (!exerciseModel) throw new Error("Exercise not found");
+    const workouts = this.#workouts.filter((w) => w.exercise === id);
+    exerciseModel.id = name;
+    workouts.forEach((w) => (w.exercise = name));
+    this.saveExerices();
     this.saveWorkouts();
+    window.location.reload();
   }
 }
 
@@ -153,6 +164,34 @@ export function run() {
 
   [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
   [exerciseDom].forEach(behaviorClearOnFocus);
+
+  on("show-admin-menu", () => {
+    const menu = {
+      Noop: () => {},
+      "Rename exercise": () => {
+        const exercise = exerciseDom.value || "unnamed";
+        const newName = prompt("New name", exercise);
+        if (!newName) return;
+        db.renameExercise(exercise, newName);
+      },
+    };
+    const selectDom = document.createElement("select");
+    selectDom.addEventListener("change", () => {
+      const key = selectDom.value as keyof typeof menu;
+      const cb = menu[key];
+      if (cb) {
+        cb();
+        selectDom.remove();
+      }
+    });
+    Object.entries(menu).forEach(([key, cb]) => {
+      const option = document.createElement("option");
+      option.value = key;
+      option.innerText = key;
+      selectDom.appendChild(option);
+    });
+    document.body.insertBefore(selectDom, null);
+  });
 
   on("autofill", () => {
     const lastWorkout = db
