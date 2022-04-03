@@ -12,7 +12,15 @@
         class="small fill-width center col1 outline"
         data-bind="time-since-last-exercise"
       ></div>
-      <input type="button" class="small fill-width center col2 outline" value="Meathead" data-trigger="show-admin-menu"/>
+      <div class="col2 fill-width center outline">
+        <select id="admin-menu" class="small dark-background light-text">
+          <option data-trigger="save">Save Exercise</option>
+          <option data-trigger="clear">Clear Exercise</option>
+          <option data-trigger="start-exercise">Start Exercise</option>
+          <option data-trigger="create-exercise">Add Exercise</option>
+          <option data-trigger="rename-exercise">Rename Exercise</option>
+        </select>
+      </div>
       <div class="small fill-width center col3 outline">v1.0.1</div>
       <div class="spacer"></div>
       <select
@@ -69,9 +77,13 @@
         data-trigger="increment-reps"
       />
       <span class="spacer col1-3"></span>
-      <button type="button" class="button col1" data-trigger="save">Save</button>
+      <button type="button" class="button col1" data-trigger="start-exercise">
+        Start
+      </button>
       <div class="col2 center bright hidden" id="toaster">Notifications</div>
-      <button type="button" class="button col3" data-trigger="clear">Clear</button>
+      <button type="button" class="button col3" data-trigger="save">
+        Save
+      </button>
     </form>
     <div class="spacer"></div>
     <table class="hidden pad2 fill-width">

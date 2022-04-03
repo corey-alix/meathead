@@ -128,3 +128,7 @@ input[type="number"] {
 .light-text {
   color: var(--color-light);
 }
+
+.no-border {
+  border: none;
+}

@@ -3,6 +3,7 @@ interface WorkoutSet {
   exercise: string;
   weight: number;
   reps: number;
+  exerciseDuration: number;
 }
 
 interface Exercise {
@@ -69,19 +70,7 @@ class Database {
   }
 }
 
-let timeOfLastExercise = 0;
-
-const binds = {
-  "time-since-last-exercise": (e: HTMLElement) => {
-    function doit() {
-      e.innerText = timeOfLastExercise ? asDate(timeOfLastExercise) : "-";
-    }
-    doit();
-    setInterval(doit, 1000);
-  },
-};
-
-function applyBinds() {
+function applyBinds(binds: Record<string, (e: HTMLElement) => void>) {
   Object.entries(binds).forEach(([key, cb]) => {
     const e = document.querySelector(`[data-bind="${key}"]`) as HTMLElement;
     if (!e) return;
@@ -95,105 +84,19 @@ export function run() {
     .getExercises()
     .sort((a, b) => (b.lastPerformed || 0) - (a.lastPerformed || 0));
 
-  timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
+  let timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
+  let exerciseStartTime = 0;
 
   const exercisesDom = document.getElementById("exercise") as HTMLOptionElement;
-
-  exerciseStore.forEach((x) => {
-    addExerciseToDropdown(x.id, exercisesDom);
-  });
-
-  const triggers = Array.from(
-    document.querySelectorAll("[data-trigger]")
-  ) as Array<HTMLInputElement>;
-  triggers.forEach((e) => {
-    const eventName = e.getAttribute("data-trigger");
-    let enabled = false;
-
-    const doit = debounce(() => {
-      trigger(eventName);
-      if (!enabled) return;
-      requestAnimationFrame(doit);
-    }, 100);
-
-    if (e.classList.contains("as-keypress")) {
-      e.addEventListener("mousedown", (e) => {
-        enabled = true;
-        doit();
-        e.preventDefault();
-      });
-
-      e.addEventListener("touchstart", (e) => {
-        enabled = true;
-        doit();
-        e.preventDefault();
-      });
-
-      e.addEventListener("mouseup", (e) => {
-        enabled = false;
-        e.preventDefault();
-      });
-
-      e.addEventListener("touchend", (e) => {
-        enabled = false;
-        e.preventDefault();
-      });
-    } else {
-      e.addEventListener("click", () => {
-        trigger(eventName);
-      });
-    }
-  });
+  const adminMenuDom = document.querySelector(
+    "#admin-menu"
+  ) as HTMLSelectElement;
 
   const reportDom = document.getElementById("report-body") as HTMLTableElement;
   const formDom = document.getElementById("form") as HTMLFormElement;
   const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
   const weightDom = document.getElementById("weight") as HTMLInputElement;
   const repsDom = document.getElementById("reps") as HTMLInputElement;
-
-  exerciseDom.addEventListener("change", () => {
-    trigger("update-report");
-    trigger("autofill");
-  });
-
-  [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
-  [exerciseDom].forEach(behaviorClearOnFocus);
-
-  applyBinds();
-
-  on("show-admin-menu", () => {
-    const menu = {
-      "": () => {},
-      "Rename exercise": () => {
-        const exercise = exerciseDom.value || "unnamed";
-        const newName = prompt("New name", exercise);
-        if (!newName) return;
-        db.renameExercise(exercise, newName);
-      },
-      "Create Exercise": () => {
-        const newName = prompt("New Exercise", "New Exercise");
-        if (!newName) return;
-        db.addExercise({ id: newName, lastPerformed: 0 });
-        addExerciseToDropdown(newName, exercisesDom);
-      },
-    };
-    const selectDom = document.createElement("select");
-    selectDom.addEventListener("change", () => {
-      const key = selectDom.value as keyof typeof menu;
-      const cb = menu[key];
-      if (cb) {
-        cb();
-        selectDom.remove();
-      }
-    });
-    Object.entries(menu).forEach(([key, cb]) => {
-      const option = document.createElement("option");
-      option.value = key;
-      option.innerText = key;
-      selectDom.appendChild(option);
-    });
-    document.body.insertBefore(selectDom, null);
-  });
 
   on("autofill", () => {
     const lastWorkout = db
@@ -236,6 +139,7 @@ export function run() {
     weightDom.value = "";
     repsDom.value = "";
     exerciseDom.value = "";
+    exerciseStartTime = 0;
     trigger("exercise-clear");
   });
 
@@ -266,6 +170,7 @@ export function run() {
       exercise: exerciseValue,
       weight: weightValue,
       reps: repValue,
+      exerciseDuration: exerciseStartTime ? Date.now() - exerciseStartTime : 0,
     };
     insertReportItem(reportDom, workout);
 
@@ -276,15 +181,115 @@ export function run() {
 
   on("saved", () => {
     // notify the user the workout was saved using a toaster slider
-
-    // show the toaster slider
-    const toaster = document.getElementById("toaster") as HTMLDivElement;
-    toaster.classList.remove("hidden");
-    toaster.innerText = "Workout Saved";
-    setTimeout(() => {
-      toaster.classList.add("hidden");
-    }, 1000);
+    toaster("Workout Saved");
   });
+
+  on("startup", () => {
+    applyBinds({
+      "time-since-last-exercise": (e: HTMLElement) => {
+        function doit() {
+          e.innerText = asDate(exerciseStartTime || timeOfLastExercise);
+        }
+        doit();
+        setInterval(() => requestAnimationFrame(doit), 1000);
+      },
+    });
+
+    exerciseStore.forEach((x) => {
+      addExerciseToDropdown(x.id, exercisesDom);
+    });
+
+    const triggers = Array.from(
+      document.querySelectorAll("[data-trigger]")
+    ) as Array<HTMLInputElement>;
+    triggers.forEach((e) => {
+      const eventName = e.getAttribute("data-trigger");
+      let enabled = false;
+
+      const doit = debounce(() => {
+        trigger(eventName);
+        if (!enabled) return;
+        requestAnimationFrame(doit);
+      }, 100);
+
+      if (e.classList.contains("as-keypress")) {
+        e.addEventListener("mousedown", (e) => {
+          enabled = true;
+          doit();
+          e.preventDefault();
+        });
+
+        e.addEventListener("touchstart", (e) => {
+          enabled = true;
+          doit();
+          e.preventDefault();
+        });
+
+        e.addEventListener("mouseup", (e) => {
+          enabled = false;
+          e.preventDefault();
+        });
+
+        e.addEventListener("touchend", (e) => {
+          enabled = false;
+          e.preventDefault();
+        });
+      } else {
+        e.addEventListener("click", () => {
+          trigger(eventName);
+        });
+      }
+    });
+
+    exerciseDom.addEventListener("change", () => {
+      exerciseStartTime = 0;
+      trigger("update-report");
+      trigger("autofill");
+    });
+
+    [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
+    [exerciseDom].forEach(behaviorClearOnFocus);
+
+    on("start-exercise", () => {
+      if (!formDom.reportValidity()) return;
+      exerciseStartTime = exerciseStartTime ? 0 : Date.now();
+      toaster("Timer Started");
+    });
+
+    on("create-exercise", () => {
+      const newName = prompt("New Exercise", "New Exercise");
+      if (!newName) return;
+      db.addExercise({ id: newName, lastPerformed: 0 });
+      addExerciseToDropdown(newName, exercisesDom);
+    });
+
+    on("rename-exercise", () => {
+      const exercise = exerciseDom.value || "unnamed";
+      const newName = prompt("New name", exercise);
+      if (!newName) return;
+      db.renameExercise(exercise, newName);
+    });
+
+    adminMenuDom.value = "";
+    adminMenuDom.addEventListener("change", () => {
+      Array.from(adminMenuDom.selectedOptions).forEach((option) => {
+        const event = option.getAttribute("data-trigger");
+        if (event) trigger(event);
+        adminMenuDom.value = "";
+      });
+    });
+  });
+
+  trigger("startup");
+}
+
+function toaster(message: string) {
+  const toaster = document.getElementById("toaster") as HTMLDivElement;
+  toaster.classList.remove("hidden");
+  toaster.innerText = message;
+  setTimeout(() => {
+    toaster.classList.add("hidden");
+  }, 1000);
 }
 
 function increment(reps: HTMLInputElement, amount: number) {
@@ -342,19 +347,28 @@ function insertReportItem(report: HTMLTableElement, row: WorkoutSet) {
 }
 
 function createReportRow(r: WorkoutSet): string {
+  const col2 = r.exerciseDuration
+    ? asDate(Date.now() + r.exerciseDuration)
+    : r.reps;
   return `<tr><td class="align-left">${asDate(
     r.tick
-  )}</td><td class="align-right">${r.reps}</td><td class="align-right">${
+  )}</td><td class="align-right">${col2}</td><td class="align-right">${
     r.weight
   }</td></tr>`;
 }
 
 function asDate(tick: number) {
-  const dtSec = Math.floor((Date.now() - tick) / 1000);
-  if (dtSec < 60) return `${dtSec} seconds ago`;
-  if (dtSec < 3600) return `${Math.floor(dtSec / 60)} minutes ago`;
-  if (dtSec < 86400) return `${Math.floor(dtSec / 3600)} hours ago`;
-  return `${Math.floor(dtSec / 86400)} days ago`;
+  if (!tick) return "";
+  const dt = Date.now() - tick;
+  const dtSec = Math.floor(dt / 1000);
+  const dtMin = Math.floor(dtSec / 60);
+  const dtHr = Math.floor(dtMin / 60);
+  const dtDay = Math.floor(dtHr / 24);
+  if (dtDay > 7) return new Date(tick).toLocaleDateString();
+  if (dtDay) return `${dtDay}d ${dtHr % 24}h`;
+  if (dtHr) return `${dtHr}h ${dtMin % 60}m`;
+  if (dtMin) return `${dtMin}m ${dtSec % 60}s`;
+  return `${dtSec}s`;
 }
 
 function debounce<T extends Function>(cb: T, wait = 20) {
