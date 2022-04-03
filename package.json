@@ -1,6 +1,6 @@
 {
   "name": "meathead",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Weight Training App",
   "main": "index.js",
   "scripts": {
