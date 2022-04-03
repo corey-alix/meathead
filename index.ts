@@ -73,9 +73,11 @@ let timeOfLastExercise = 0;
 
 const binds = {
   "time-since-last-exercise": (e: HTMLElement) => {
-    setInterval(() => {
-      e.innerText = asDate(timeOfLastExercise);
-    }, 1000);
+    function doit() {
+      e.innerText = timeOfLastExercise ? asDate(timeOfLastExercise) : "-";
+    }
+    doit();
+    setInterval(doit, 1000);
   },
 };
 
@@ -88,8 +90,6 @@ function applyBinds() {
 }
 
 export function run() {
-  applyBinds();
-
   const db = new Database();
   const exerciseStore = db
     .getExercises()
@@ -97,9 +97,7 @@ export function run() {
 
   timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
 
-  const exercisesDom = document.getElementById(
-    "exercises"
-  ) as HTMLDataListElement;
+  const exercisesDom = document.getElementById("exercise") as HTMLOptionElement;
 
   exerciseStore.forEach((x) => {
     addExerciseToDropdown(x.id, exercisesDom);
@@ -153,10 +151,6 @@ export function run() {
   const weightDom = document.getElementById("weight") as HTMLInputElement;
   const repsDom = document.getElementById("reps") as HTMLInputElement;
 
-  exerciseDom.addEventListener("click", () => {
-    trigger("clear");
-  });
-
   exerciseDom.addEventListener("change", () => {
     trigger("update-report");
     trigger("autofill");
@@ -165,14 +159,22 @@ export function run() {
   [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
   [exerciseDom].forEach(behaviorClearOnFocus);
 
+  applyBinds();
+
   on("show-admin-menu", () => {
     const menu = {
-      Noop: () => {},
+      "": () => {},
       "Rename exercise": () => {
         const exercise = exerciseDom.value || "unnamed";
         const newName = prompt("New name", exercise);
         if (!newName) return;
         db.renameExercise(exercise, newName);
+      },
+      "Create Exercise": () => {
+        const newName = prompt("New Exercise", "New Exercise");
+        if (!newName) return;
+        db.addExercise({ id: newName, lastPerformed: 0 });
+        addExerciseToDropdown(newName, exercisesDom);
       },
     };
     const selectDom = document.createElement("select");
@@ -257,7 +259,6 @@ export function run() {
         id: exerciseValue,
         lastPerformed: timeOfLastExercise,
       });
-      moveExerciseToTop(exerciseValue, exercisesDom);
     }
 
     const workout = {
@@ -292,21 +293,12 @@ function increment(reps: HTMLInputElement, amount: number) {
 
 function addExerciseToDropdown(
   exerciseValue: string,
-  exercisesDom: HTMLDataListElement
+  exercisesDom: HTMLOptionElement
 ) {
   const option = document.createElement("option");
   option.value = exerciseValue;
   option.innerText = exerciseValue;
   exercisesDom.insertBefore(option, null);
-}
-
-function moveExerciseToTop(
-  exerciseValue: string,
-  exercisesDom: HTMLDataListElement
-) {
-  const option = exercisesDom.querySelector(`option[value="${exerciseValue}"]`);
-  if (!option) return;
-  exercisesDom.insertBefore(option, exercisesDom.firstChild);
 }
 
 // raise an HTML event

@@ -120,3 +120,11 @@ input[type="number"] {
 .outline {
   border: solid var(--color-light);
 }
+
+.dark-background {
+  background-color: var(--color-dark);
+}
+
+.light-text {
+  color: var(--color-light);
+}
