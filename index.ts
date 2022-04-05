@@ -159,6 +159,7 @@ export function run() {
       db.addExercise({ id: exerciseValue, lastPerformed: timeOfLastExercise });
       addExerciseToDropdown(exerciseValue, exercisesDom);
     } else {
+      moveExerciseToTopOfDropdown(exerciseValue, exercisesDom);
       db.updateExercise({
         id: exerciseValue,
         lastPerformed: timeOfLastExercise,
@@ -172,6 +173,10 @@ export function run() {
       reps: repValue,
       exerciseDuration: exerciseStartTime ? Date.now() - exerciseStartTime : 0,
     };
+
+    // restart the exercise timer
+    if (exerciseStartTime) exerciseStartTime = Date.now();
+    
     insertReportItem(reportDom, workout);
 
     db.addWorkout(workout);
@@ -253,7 +258,7 @@ export function run() {
     on("start-exercise", () => {
       if (!formDom.reportValidity()) return;
       exerciseStartTime = exerciseStartTime ? 0 : Date.now();
-      toaster("Timer Started");
+      toaster(exerciseStartTime ? "Timer Started" : "Timer Stopped");
     });
 
     on("create-exercise", () => {
@@ -348,7 +353,7 @@ function insertReportItem(report: HTMLTableElement, row: WorkoutSet) {
 
 function createReportRow(r: WorkoutSet): string {
   const col2 = r.exerciseDuration
-    ? asDate(Date.now() + r.exerciseDuration)
+    ? `${asDate(Date.now() - r.exerciseDuration)} ${r.reps}`
     : r.reps;
   return `<tr><td class="align-left">${asDate(
     r.tick
@@ -378,4 +383,13 @@ function debounce<T extends Function>(cb: T, wait = 20) {
     h = setTimeout(() => cb(...args), wait);
   };
   return <T>(<any>callable);
+}
+function moveExerciseToTopOfDropdown(
+  exerciseValue: string,
+  exercisesDom: HTMLOptionElement
+) {
+  const option = exercisesDom.querySelector(`option[value="${exerciseValue}"]`);
+  if (!option) return;
+  exercisesDom.removeChild(option);
+  exercisesDom.insertBefore(option, exercisesDom.firstChild);
 }
