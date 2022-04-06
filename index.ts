@@ -97,14 +97,13 @@ export function run() {
 
   let timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
 
-  const exercisesDom = document.getElementById("exercise") as HTMLOptionElement;
   const adminMenuDom = document.querySelector(
     "#admin-menu"
   ) as HTMLSelectElement;
 
   const reportDom = document.getElementById("report-body") as HTMLTableElement;
   const formDom = document.getElementById("form") as HTMLFormElement;
-  const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
+  const exerciseDom = document.getElementById("exercise") as HTMLSelectElement;
   const weightDom = document.getElementById("weight") as HTMLInputElement;
   const repsDom = document.getElementById("reps") as HTMLInputElement;
 
@@ -158,9 +157,9 @@ export function run() {
     timeOfLastExercise = Date.now();
     if (!exerciseModel) {
       db.addExercise({ id: exerciseValue, lastPerformed: timeOfLastExercise });
-      addExerciseToDropdown(exerciseValue, exercisesDom);
+      addExerciseToDropdown(exerciseValue, exerciseDom);
     } else {
-      moveExerciseToTopOfDropdown(exerciseValue, exercisesDom);
+      moveExerciseToTopOfDropdown(exerciseValue, exerciseDom);
       db.updateExercise({
         id: exerciseValue,
         lastPerformed: timeOfLastExercise,
@@ -208,7 +207,7 @@ export function run() {
     const newName = prompt("New Exercise", "New Exercise");
     if (!newName) return;
     db.addExercise({ id: newName, lastPerformed: 0 });
-    addExerciseToDropdown(newName, exercisesDom);
+    addExerciseToDropdown(newName, exerciseDom);
   });
 
   on("rename-exercise", () => {
@@ -219,6 +218,9 @@ export function run() {
   });
 
   on("startup", () => {
+    console.log("loading exercises");
+    exerciseStore.forEach((x) => addExerciseToDropdown(x.id, exerciseDom));
+
     applySticky(db);
 
     applyBinds({
@@ -230,10 +232,6 @@ export function run() {
         doit();
         setInterval(() => requestAnimationFrame(doit), 1000);
       },
-    });
-
-    exerciseStore.forEach((x) => {
-      addExerciseToDropdown(x.id, exercisesDom);
     });
 
     applyTriggers();
@@ -279,7 +277,10 @@ function applySticky(db: Database) {
       db.setGlobal(s.id, value);
     });
     const value = db.getGlobal(s.id);
-    if (typeof value != "undefined") s.value = value;
+    if (typeof value != "undefined") {
+      s.value = value;
+      console.log(`sticky set: ${s.id} = ${value}`);
+    }
   });
 }
 
@@ -344,7 +345,7 @@ function increment(reps: HTMLInputElement, amount: number) {
 
 function addExerciseToDropdown(
   exerciseValue: string,
-  exercisesDom: HTMLOptionElement
+  exercisesDom: HTMLSelectElement
 ) {
   const option = document.createElement("option");
   option.value = exerciseValue;
@@ -376,7 +377,7 @@ function behaviorSelectAllOnFocus(e: HTMLInputElement) {
   e.addEventListener("focus", () => e.select());
 }
 
-function behaviorClearOnFocus(e: HTMLInputElement) {
+function behaviorClearOnFocus(e: HTMLInputElement | HTMLSelectElement) {
   e.addEventListener("focus", () => (e.value = ""));
 }
 
@@ -427,7 +428,7 @@ function debounce<T extends Function>(cb: T, wait = 20) {
 }
 function moveExerciseToTopOfDropdown(
   exerciseValue: string,
-  exercisesDom: HTMLOptionElement
+  exercisesDom: HTMLSelectElement
 ) {
   const option = exercisesDom.querySelector(`option[value="${exerciseValue}"]`);
   if (!option) return;
