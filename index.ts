@@ -1,3 +1,7 @@
+interface Globals {
+  exerciseStartTime?: number;
+}
+
 interface WorkoutSet {
   tick: number;
   exercise: string;
@@ -12,10 +16,12 @@ interface Exercise {
 }
 
 class Database {
+  #globals: Record<string, any>;
   #exercises: Exercise[];
   #workouts: WorkoutSet[];
 
   constructor() {
+    this.#globals = JSON.parse(localStorage.getItem("globals") || "{}");
     this.#exercises = JSON.parse(
       localStorage.getItem("exerciseDataset") || "[]"
     ) as Array<Exercise>;
@@ -31,6 +37,10 @@ class Database {
 
   private saveExerices() {
     localStorage.setItem("exerciseDataset", JSON.stringify(this.#exercises));
+  }
+
+  private saveGlobals() {
+    localStorage.setItem("globals", JSON.stringify(this.#globals));
   }
 
   getExercises() {
@@ -68,14 +78,15 @@ class Database {
     this.saveWorkouts();
     window.location.reload();
   }
-}
 
-function applyBinds(binds: Record<string, (e: HTMLElement) => void>) {
-  Object.entries(binds).forEach(([key, cb]) => {
-    const e = document.querySelector(`[data-bind="${key}"]`) as HTMLElement;
-    if (!e) return;
-    cb(e);
-  });
+  setGlobal(key: string, value: any) {
+    this.#globals[key] = value;
+    this.saveGlobals();
+  }
+
+  getGlobal(key: string) {
+    return this.#globals[key];
+  }
 }
 
 export function run() {
@@ -85,7 +96,6 @@ export function run() {
     .sort((a, b) => (b.lastPerformed || 0) - (a.lastPerformed || 0));
 
   let timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
-  let exerciseStartTime = 0;
 
   const exercisesDom = document.getElementById("exercise") as HTMLOptionElement;
   const adminMenuDom = document.querySelector(
@@ -97,15 +107,6 @@ export function run() {
   const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
   const weightDom = document.getElementById("weight") as HTMLInputElement;
   const repsDom = document.getElementById("reps") as HTMLInputElement;
-
-  on("autofill", () => {
-    const lastWorkout = db
-      .getWorkouts(exerciseDom.value)
-      .sort((a, b) => b.tick - a.tick)[0];
-    if (!lastWorkout) return;
-    weightDom.value = lastWorkout.weight.toString();
-    repsDom.value = lastWorkout.reps.toString();
-  });
 
   on("update-report", () => {
     const exerciseValue = exerciseDom.value;
@@ -139,7 +140,7 @@ export function run() {
     weightDom.value = "";
     repsDom.value = "";
     exerciseDom.value = "";
-    exerciseStartTime = 0;
+    db.setGlobal("exerciseStartTime", 0);
     trigger("exercise-clear");
   });
 
@@ -166,6 +167,8 @@ export function run() {
       });
     }
 
+    const exerciseStartTime = db.getGlobal("exerciseStartTime");
+
     const workout = {
       tick: timeOfLastExercise,
       exercise: exerciseValue,
@@ -175,8 +178,8 @@ export function run() {
     };
 
     // restart the exercise timer
-    if (exerciseStartTime) exerciseStartTime = Date.now();
-    
+    if (exerciseStartTime) db.setGlobal("exerciseStartTime", Date.now());
+
     insertReportItem(reportDom, workout);
 
     db.addWorkout(workout);
@@ -189,10 +192,39 @@ export function run() {
     toaster("Workout Saved");
   });
 
+  on("start-exercise", () => {
+    if (!formDom.reportValidity()) return;
+    const exerciseStartTime = db.getGlobal("exerciseStartTime");
+    if (!exerciseStartTime) {
+      db.setGlobal("exerciseStartTime", Date.now());
+      toaster("Timer Started");
+    } else {
+      db.setGlobal("exerciseStartTime", 0);
+      toaster("Timer Stopped");
+    }
+  });
+
+  on("create-exercise", () => {
+    const newName = prompt("New Exercise", "New Exercise");
+    if (!newName) return;
+    db.addExercise({ id: newName, lastPerformed: 0 });
+    addExerciseToDropdown(newName, exercisesDom);
+  });
+
+  on("rename-exercise", () => {
+    const exercise = exerciseDom.value || "unnamed";
+    const newName = prompt("New name", exercise);
+    if (!newName) return;
+    db.renameExercise(exercise, newName);
+  });
+
   on("startup", () => {
+    applySticky(db);
+
     applyBinds({
       "time-since-last-exercise": (e: HTMLElement) => {
         function doit() {
+          const exerciseStartTime = db.getGlobal("exerciseStartTime");
           e.innerText = asDate(exerciseStartTime || timeOfLastExercise);
         }
         doit();
@@ -204,76 +236,16 @@ export function run() {
       addExerciseToDropdown(x.id, exercisesDom);
     });
 
-    const triggers = Array.from(
-      document.querySelectorAll("[data-trigger]")
-    ) as Array<HTMLInputElement>;
-    triggers.forEach((e) => {
-      const eventName = e.getAttribute("data-trigger");
-      let enabled = false;
-
-      const doit = debounce(() => {
-        trigger(eventName);
-        if (!enabled) return;
-        requestAnimationFrame(doit);
-      }, 100);
-
-      if (e.classList.contains("as-keypress")) {
-        e.addEventListener("mousedown", (e) => {
-          enabled = true;
-          doit();
-          e.preventDefault();
-        });
-
-        e.addEventListener("touchstart", (e) => {
-          enabled = true;
-          doit();
-          e.preventDefault();
-        });
-
-        e.addEventListener("mouseup", (e) => {
-          enabled = false;
-          e.preventDefault();
-        });
-
-        e.addEventListener("touchend", (e) => {
-          enabled = false;
-          e.preventDefault();
-        });
-      } else {
-        e.addEventListener("click", () => {
-          trigger(eventName);
-        });
-      }
-    });
+    applyTriggers();
 
     exerciseDom.addEventListener("change", () => {
-      exerciseStartTime = 0;
+      db.setGlobal("exerciseStartTime", 0);
       trigger("update-report");
       trigger("autofill");
     });
 
     [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
     [exerciseDom].forEach(behaviorClearOnFocus);
-
-    on("start-exercise", () => {
-      if (!formDom.reportValidity()) return;
-      exerciseStartTime = exerciseStartTime ? 0 : Date.now();
-      toaster(exerciseStartTime ? "Timer Started" : "Timer Stopped");
-    });
-
-    on("create-exercise", () => {
-      const newName = prompt("New Exercise", "New Exercise");
-      if (!newName) return;
-      db.addExercise({ id: newName, lastPerformed: 0 });
-      addExerciseToDropdown(newName, exercisesDom);
-    });
-
-    on("rename-exercise", () => {
-      const exercise = exerciseDom.value || "unnamed";
-      const newName = prompt("New name", exercise);
-      if (!newName) return;
-      db.renameExercise(exercise, newName);
-    });
 
     adminMenuDom.value = "";
     adminMenuDom.addEventListener("change", () => {
@@ -285,7 +257,74 @@ export function run() {
     });
   });
 
+  on("autofill", () => {
+    const lastWorkout = db
+      .getWorkouts(exerciseDom.value)
+      .sort((a, b) => b.tick - a.tick)[0];
+    if (!lastWorkout) return;
+    weightDom.value = lastWorkout.weight.toString();
+    repsDom.value = lastWorkout.reps.toString();
+  });
+
   trigger("startup");
+}
+
+function applySticky(db: Database) {
+  const sticky = Array.from(document.querySelectorAll(".is-sticky")) as Array<
+    HTMLInputElement | HTMLSelectElement
+  >;
+  sticky.forEach((s) => {
+    s.addEventListener("change", () => {
+      const value = s.value;
+      db.setGlobal(s.id, value);
+    });
+    const value = db.getGlobal(s.id);
+    if (typeof value != "undefined") s.value = value;
+  });
+}
+
+function applyTriggers() {
+  const triggers = Array.from(
+    document.querySelectorAll("[data-trigger]")
+  ) as Array<HTMLInputElement>;
+  triggers.forEach((e) => {
+    const eventName = e.getAttribute("data-trigger");
+    let enabled = false;
+
+    const doit = debounce(() => {
+      trigger(eventName);
+      if (!enabled) return;
+      requestAnimationFrame(doit);
+    }, 100);
+
+    if (e.classList.contains("as-keypress")) {
+      e.addEventListener("mousedown", (e) => {
+        enabled = true;
+        doit();
+        e.preventDefault();
+      });
+
+      e.addEventListener("touchstart", (e) => {
+        enabled = true;
+        doit();
+        e.preventDefault();
+      });
+
+      e.addEventListener("mouseup", (e) => {
+        enabled = false;
+        e.preventDefault();
+      });
+
+      e.addEventListener("touchend", (e) => {
+        enabled = false;
+        e.preventDefault();
+      });
+    } else {
+      e.addEventListener("click", () => {
+        trigger(eventName);
+      });
+    }
+  });
 }
 
 function toaster(message: string) {
@@ -299,6 +338,8 @@ function toaster(message: string) {
 
 function increment(reps: HTMLInputElement, amount: number) {
   reps.value = (parseInt(reps.value || "0") + amount).toString();
+  // trigger a synthetic change event
+  reps.dispatchEvent(new Event("change"));
 }
 
 function addExerciseToDropdown(
@@ -392,4 +433,12 @@ function moveExerciseToTopOfDropdown(
   if (!option) return;
   exercisesDom.removeChild(option);
   exercisesDom.insertBefore(option, exercisesDom.firstChild);
+}
+
+function applyBinds(binds: Record<string, (e: HTMLElement) => void>) {
+  Object.entries(binds).forEach(([key, cb]) => {
+    const e = document.querySelector(`[data-bind="${key}"]`) as HTMLElement;
+    if (!e) return;
+    cb(e);
+  });
 }
