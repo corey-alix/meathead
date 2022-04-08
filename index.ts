@@ -503,11 +503,13 @@ export function runImport() {
       const exerciseNames = Array.from(
         new Set(workouts.map((workout) => workout.exercise))
       );
-      const exercises: Exercise[] = exerciseNames.map((name) => {
-        const lastWorkout = workouts.find((w) => w.exercise === name)!;
+      const exercises: Exercise[] = exerciseNames.map((id) => {
+        const lastPerformed = Math.max(
+          ...workouts.filter((w) => w.exercise === id)!.map((w) => w.tick)
+        );
         return {
-          id: lastWorkout.exercise,
-          lastPerformed: lastWorkout.tick,
+          id,
+          lastPerformed,
         };
       });
       db.importExercises(exercises);
