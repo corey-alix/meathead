@@ -9,14 +9,20 @@
   <body class="dark overflow">
     <form id="form" class="grid">
       <div
-        class="small fill-width center col1 outline"
+        class="tiny-font fill-width center col1 outline"
         data-bind="time-since-last-exercise"
       ></div>
-      <label class="col2 fill-width center outline" for="admin-menu"
+      <label class="col2 tiny-font fill-width center outline" for="admin-menu"
         >Admin
+      </label>
+      <div id="version" class="tiny-font fill-width center col3 outline">
+        [VERSION]
+      </div>
+      <div class="tiny-font fill-width center col1 outline">Reserved</div>
+      <div class="tiny-font fill-width center col2 outline">
         <select
           id="admin-menu"
-          class="small fill-width dark-background light-text"
+          class="col2 fill-width dark-background light-text"
         >
           <option data-trigger="clear">Clear Exercise</option>
           <option data-trigger="start-exercise">Start Exercise</option>
@@ -25,9 +31,9 @@
           <option data-trigger="open-export-form">Export</option>
           <option data-trigger="open-import-form">Import</option>
         </select>
-      </label>
-      <div class="small fill-width center col3 outline">v1.0.1</div>
-      <div class="spacer"></div>
+      </div>
+      <div class="tiny-font fill-width center col3 outline">Reserved</div>
+      <div class="col1-3 spacer"></div>
       <select
         required
         class="col1-3 fill-width outline light-text dark-background center is-sticky"

@@ -11,6 +11,10 @@ interface Exercise {
   lastPerformed: number;
 }
 
+const globals = {
+  version: "1.0.2",
+};
+
 class Database {
   updateWorkout(workout: WorkoutSet) {
     const workoutModel = this.#workouts.find((w) => w.tick == workout.tick);
@@ -453,7 +457,11 @@ export function run() {
   });
 
   on("startup", () => {
-    console.log("loading exercises");
+    Object.keys(globals).forEach((id) => {
+      const target = document.getElementById(id);
+      if (target) target.innerText = globals[<keyof typeof globals>(<any>id)];
+    });
+
     exerciseStore.forEach((x) => addExerciseToDropdown(x.id, exerciseDom));
 
     exerciseDom.addEventListener("change", () => {
