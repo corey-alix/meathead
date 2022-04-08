@@ -31,6 +31,7 @@
         id="exercise"
         placeholder="Exercise"
       ></select>
+      <div class="spacer"></div>
       <label class="col1-3 center" for="weight">Weight</label>
       <input
         type="button"
@@ -54,6 +55,7 @@
         value="+"
         data-trigger="increment-weight"
       />
+      <span class="spacer col1"></span>
       <label class="col1-3 center" for="reps">Reps</label>
       <input
         type="button"
@@ -77,7 +79,7 @@
         value="+"
         data-trigger="increment-reps"
       />
-      <span class="spacer col1-3"></span>
+      <span class="spacer col1"></span>
       <button type="button" class="button col1" data-trigger="start-exercise">
         Start
       </button>
@@ -87,7 +89,7 @@
       </button>
     </form>
     <div class="spacer"></div>
-    <table class="hidden pad2 fill-width">
+    <table class="hidden fill-width">
       <thead>
         <th class="underline align-left">Date</th>
         <th class="underline align-right">Reps</th>
