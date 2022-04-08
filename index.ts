@@ -210,8 +210,14 @@ function behaviorClearOnFocus(e: HTMLInputElement | HTMLSelectElement) {
 }
 
 function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
+  const header = `
+  <span class="col1 fill-width underline align-left">Date</span>
+  <span class="col2 fill-width underline align-right">Reps</span>
+  <span class="col3 fill-width underline align-right">Weight</span>
+`;
+
   const html = rows.map((r) => createReportRow(r));
-  report.innerHTML = html.join("");
+  report.innerHTML = header + html.join("");
   report.parentElement?.classList.toggle("hidden", rows.length === 0);
 }
 
@@ -225,11 +231,11 @@ function createReportRow(r: WorkoutSet): string {
   const col2 = r.exerciseDuration
     ? `${asDate(Date.now() - r.exerciseDuration)} ${r.reps}`
     : r.reps;
-  return `<tr><td class="align-left">${asDate(
+  return `<span class="col1 fill-width align-left">${asDate(
     r.tick
-  )}</td><td class="align-right">${col2}</td><td class="align-right">${
+  )}</span><span class="col2 fill-width align-right">${col2}</span><span class="col3 fill-width align-right">${
     r.weight
-  }</td></tr>`;
+  }</span>`;
 }
 
 function asDate(tick: number) {
@@ -520,3 +526,6 @@ export function runImport() {
     }
   });
 }
+
+// import { workouts } from "./test/workouts.js";
+// console.log(JSON.stringify(workouts, null, " "));

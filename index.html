@@ -7,13 +7,17 @@
     <link rel="stylesheet" href="./index.css" />
   </head>
   <body class="dark overflow">
-    <form id="form" class="container grid">
+    <form id="form" class="grid">
       <div
         class="small fill-width center col1 outline"
         data-bind="time-since-last-exercise"
       ></div>
-      <label class="col2 fill-width center outline" for="admin-menu">Admin
-        <select id="admin-menu" class="small fill-width dark-background light-text">
+      <label class="col2 fill-width center outline" for="admin-menu"
+        >Admin
+        <select
+          id="admin-menu"
+          class="small fill-width dark-background light-text"
+        >
           <option data-trigger="clear">Clear Exercise</option>
           <option data-trigger="start-exercise">Start Exercise</option>
           <option data-trigger="create-exercise">Add Exercise</option>
@@ -89,14 +93,7 @@
       </button>
     </form>
     <div class="spacer"></div>
-    <table class="hidden fill-width">
-      <thead>
-        <th class="underline align-left">Date</th>
-        <th class="underline align-right">Reps</th>
-        <th class="underline align-right">Weight</th>
-      </thead>
-      <tbody id="report-body"></tbody>
-    </table>
+    <div class="grid fill-width" id="report-body"></div>
     <script type="module">
       import { run } from "./dist/index.js";
       run();
