@@ -560,9 +560,10 @@ export function runEditWorkout() {
   const workout = db.getWorkout(Number.parseInt(id));
   if (!workout) throw new Error("no workout");
   applyTriggers();
-  const exerciseDom = document.getElementById("exercise") as HTMLSelectElement;
+  const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
   const weightDom = document.getElementById("weight") as HTMLInputElement;
   const repsDom = document.getElementById("reps") as HTMLInputElement;
+  [exerciseDom, weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
   exerciseDom.value = workout.exercise;
   repsDom.value = workout.reps.toString();
   weightDom.value = workout.weight.toString();
