@@ -12,6 +12,19 @@ interface Exercise {
 }
 
 class Database {
+  updateWorkout(workout: WorkoutSet) {
+    const workoutModel = this.#workouts.find((w) => w.tick == workout.tick);
+    if (!workoutModel) throw new Error("Workout not found");
+    workoutModel.exercise = workout.exercise;
+    workoutModel.weight = workout.weight;
+    workoutModel.reps = workout.reps;
+    this.saveWorkouts();
+  }
+
+  getWorkout(id: number) {
+    return this.#workouts.find((w) => w.tick == id);
+  }
+
   #globals: Record<string, any>;
   #exercises: Exercise[];
   #workouts: WorkoutSet[];
@@ -106,22 +119,25 @@ function applySticky(db: Database) {
     });
     const value = db.getGlobal(s.id);
     if (typeof value != "undefined") {
-      s.value = value;
-      console.log(`sticky set: ${s.id} = ${value}`);
+      if (s.value != value) {
+        s.value = value;
+        s.dispatchEvent(new Event("change"));
+      }
     }
   });
 }
 
-function applyTriggers() {
+function applyTriggers(scope: HTMLElement | Document = document) {
   const triggers = Array.from(
-    document.querySelectorAll("[data-trigger]")
+    scope.querySelectorAll("[data-trigger]")
   ) as Array<HTMLInputElement>;
   triggers.forEach((e) => {
     const eventName = e.getAttribute("data-trigger");
+    if (!eventName) return;
     let enabled = false;
 
     const doit = debounce(() => {
-      trigger(eventName);
+      trigger(eventName, e);
       if (!enabled) return;
       requestAnimationFrame(doit);
     }, 100);
@@ -150,7 +166,7 @@ function applyTriggers() {
       });
     } else {
       e.addEventListener("click", () => {
-        trigger(eventName);
+        trigger(eventName, e);
       });
     }
   });
@@ -182,11 +198,12 @@ function addExerciseToDropdown(
 }
 
 // raise an HTML event
-function trigger(trigger: string | null) {
+function trigger(trigger: string, node?: HTMLElement) {
   if (!trigger) return;
   const event = new CustomEvent(trigger, {
     detail: {
       message: trigger,
+      node,
     },
     bubbles: true,
     cancelable: true,
@@ -195,9 +212,9 @@ function trigger(trigger: string | null) {
 }
 
 // listen for a dispatched event
-function on(trigger: string, callback: () => void) {
-  document.addEventListener(trigger, () => {
-    callback();
+function on(trigger: string, callback: (node: HTMLElement) => void) {
+  document.addEventListener(trigger, (e: CustomEventInit) => {
+    callback(e.detail.node);
   });
 }
 
@@ -218,6 +235,7 @@ function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
 
   const html = rows.map((r) => createReportRow(r));
   report.innerHTML = header + html.join("");
+  applyTriggers(report);
   report.parentElement?.classList.toggle("hidden", rows.length === 0);
 }
 
@@ -231,11 +249,13 @@ function createReportRow(r: WorkoutSet): string {
   const col2 = r.exerciseDuration
     ? `${asDate(Date.now() - r.exerciseDuration)} ${r.reps}`
     : r.reps;
-  return `<span class="col1 fill-width align-left">${asDate(
-    r.tick
-  )}</span><span class="col2 fill-width align-right">${col2}</span><span class="col3 fill-width align-right">${
-    r.weight
-  }</span>`;
+  return `
+  <button 
+    class="col1 fill-width align-left dark-background light-text no-border" 
+    data-trigger="edit-workout" 
+    data-id="${r.tick}">${asDate(r.tick)}</button>
+  <span class="col2 fill-width align-right">${col2}</span>
+  <span class="col3 fill-width align-right">${r.weight}</span>`;
 }
 
 function asDate(tick: number) {
@@ -427,9 +447,20 @@ export function run() {
     db.renameExercise(exercise, newName);
   });
 
+  on("edit-workout", (e: HTMLElement) => {
+    const id = e.dataset.id;
+    window.location.href = `./pages/edit-workout.html?id=${id}`;
+  });
+
   on("startup", () => {
     console.log("loading exercises");
     exerciseStore.forEach((x) => addExerciseToDropdown(x.id, exerciseDom));
+
+    exerciseDom.addEventListener("change", () => {
+      db.setGlobal("exerciseStartTime", 0);
+      trigger("update-report");
+      trigger("autofill");
+    });
 
     applySticky(db);
 
@@ -446,14 +477,8 @@ export function run() {
 
     applyTriggers();
 
-    exerciseDom.addEventListener("change", () => {
-      db.setGlobal("exerciseStartTime", 0);
-      trigger("update-report");
-      trigger("autofill");
-    });
-
     [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
-    [exerciseDom].forEach(behaviorClearOnFocus);
+    //[exerciseDom].forEach(behaviorClearOnFocus);
 
     adminMenuDom.value = "";
     adminMenuDom.addEventListener("change", () => {
@@ -527,5 +552,28 @@ export function runImport() {
   });
 }
 
+export function runEditWorkout() {
+  // get id from the location query string
+  const id = new URLSearchParams(window.location.search).get("id");
+  if (!id) throw new Error("no id");
+  const db = new Database();
+  const workout = db.getWorkout(Number.parseInt(id));
+  if (!workout) throw new Error("no workout");
+  applyTriggers();
+  const exerciseDom = document.getElementById("exercise") as HTMLSelectElement;
+  const weightDom = document.getElementById("weight") as HTMLInputElement;
+  const repsDom = document.getElementById("reps") as HTMLInputElement;
+  exerciseDom.value = workout.exercise;
+  repsDom.value = workout.reps.toString();
+  weightDom.value = workout.weight.toString();
+  on("change-workout", () => {
+    workout.exercise = exerciseDom.value;
+    workout.reps = Number.parseInt(repsDom.value);
+    workout.weight = Number.parseInt(weightDom.value);
+    db.updateWorkout(workout);
+    toaster("Workout updated");
+    window.history.back();
+  });
+}
 // import { workouts } from "./test/workouts.js";
 // console.log(JSON.stringify(workouts, null, " "));

@@ -64,7 +64,7 @@ h2 {
   text-align: center;
 }
 
-input {
+.input {
   text-align: center;
   color: white;
   background-color: var(--color-dark);
