@@ -6,40 +6,51 @@
     <title>Meat Head</title>
     <link rel="stylesheet" href="../index.css" />
   </head>
-  <body class="dark grid">
-    <label for="exercise" class="col1-3 fill-width">Exercise</label>
-    <input
-      id="exercise"
-      class="col1-3 fill-width"
-      type="text"
-      placeholder="Exercise"
-    />
-    <span class="spacer col1-3"></span>
-    <input
-      id="weight"
-      class="col1-3 fill-width align-right"
-      type="number"
-      value=""
-      min="1"
-      max="9999"
-      step="1"
-    />
-    <label for="reps" class="col1-3 fill-width">Reps</label>
-    <input
-      id="reps"
-      class="col1-3 fill-width align-right"
-      type="number"
-      value=""
-      min="1"
-      max="9999"
-      step="1"
-    />
-    <span class="spacer col1-3"></span>
-    <button class="col3 fill-width" type="submit" data-trigger="change-workout">
-      Apply Changes
-    </button>
+  <body class="dark">
+    <div class="grid">
+      <label for="exercise" class="col1-3 fill-width">Exercise</label>
+      <input
+        id="exercise"
+        class="col1-3 fill-width"
+        type="text"
+        placeholder="Exercise"
+      />
+      <span class="spacer col1-3"></span>
+      <label for="weight" class="col1-3 fill-width">Weight</label>
+      <input
+        id="weight"
+        class="col1-3 fill-width align-right"
+        type="number"
+        value=""
+        min="1"
+        max="9999"
+        step="1"
+      />
+      <span class="spacer col1-3"></span>
+      <label for="reps" class="col1-3 fill-width">Reps</label>
+      <input
+        id="reps"
+        class="col1-3 fill-width align-right"
+        type="number"
+        value=""
+        min="1"
+        max="9999"
+        step="1"
+      />
+      <span class="spacer col1-3"></span>
+      <button
+        class="col3 fill-width"
+        type="submit"
+        data-trigger="change-workout"
+      >
+        Apply Changes
+      </button>
+      <span class="spacer col1-3"></span>
+    </div>
     <span class="toaster pad">
-      <span class="bright hidden dark-background pad2" id="toaster"> Notifications </span>
+      <span class="bright hidden dark-background pad2" id="toaster">
+        Notifications
+      </span>
     </span>
     <script type="module">
       import { runEditWorkout } from "../dist/index.js";
