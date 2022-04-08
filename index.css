@@ -17,6 +17,10 @@ body {
   font-size: 1.5rem;
 }
 
+.tiny-font {
+  font-size: 0.5rem;
+}
+
 /*
 Defines a dark theme for the index page.
 */
@@ -149,10 +153,19 @@ input[type="number"] {
   color: var(--color-light);
 }
 
+.border {
+  border: solid;
+}
+
 .no-border {
   border: none;
 }
 
 .no-overflow {
   overflow: hidden;
+}
+
+.toaster {
+  position: absolute;
+  bottom: 0;
 }

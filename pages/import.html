@@ -6,18 +6,25 @@
     <title>Meat Head</title>
     <link rel="stylesheet" href="../index.css" />
   </head>
-  <body class="dark no-overflow">
-    <div class="fill-height-20 grid">
-      <button class="button col1" data-trigger="import-workouts">Import</button>
-      <span class="col2-3" style="width: 50vw">
-        <span class="bright hidden" id="toaster"> Notifications </span>
-      </span>
-      <div class="spacer col1-3"></div>
-    </div>
+  <body class="dark no-overflow grid">
+    <input
+      type="button"
+      class="col1 small-font"
+      data-trigger="import-workouts"
+      value="Import"
+    />
     <textarea
       id="exercises"
-      class="small-font fill-width fill-height-80 dark-background light-text"
-    ></textarea>
+      class="tiny-font fill-width col1-3 dark-background light-text"
+      style="grid-row: span 6"
+    >
+WARNING!
+
+Clicking import will overwrite your existing workouts and exercises.
+
+All of your data will be replaced.
+  </textarea
+    >
   </body>
   <script type="module">
     import { runImport } from "../dist/index.js";
