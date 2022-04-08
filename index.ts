@@ -316,22 +316,18 @@ export function run() {
   on("exercise-clear", () => updateReport(reportDom, []));
 
   on("increment-reps", () => {
-    repsDom.focus();
     increment(repsDom, 1);
   });
 
   on("increment-weight", () => {
-    weightDom.focus();
     increment(weightDom, 1);
   });
 
   on("decrement-reps", () => {
-    repsDom.focus();
     increment(repsDom, -1);
   });
 
   on("decrement-weight", () => {
-    weightDom.focus();
     increment(weightDom, -1);
   });
 
