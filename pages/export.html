@@ -9,22 +9,23 @@
   <body class="dark no-overflow grid">
     <input
       type="button"
-      class="col1 small-font"
+      class="col1 small-font action"
       data-trigger="copy-workouts-to-clipboard"
-      value="Copy"
+      value="⇧"
     />
+    <label class="col2-3">Export</label>
     <textarea
       readonly="1"
       title="Copy and paste this text into a text editor to edit your workouts."
       id="exercises"
       style="grid-row: 2 / span 8"
-      class="col1-3 tiny-font dark-background light-text"
+      class="col1-3 fill-width tiny-font dark-background light-text"
     ></textarea>
   </body>
   <span class="toaster pad">
     <span class="bright hidden" id="toaster"> Notifications </span>
   </span>
-<script type="module">
+  <script type="module">
     import { runExport } from "../dist/index.js";
     runExport();
   </script>

@@ -502,19 +502,23 @@ export function runImport() {
   ) as HTMLTextAreaElement;
 
   on("import-workouts", () => {
-    const workouts = JSON.parse(exercisesDom.value) as WorkoutSet[];
-    const exerciseNames = Array.from(
-      new Set(workouts.map((workout) => workout.exercise))
-    );
-    const exercises: Exercise[] = exerciseNames.map((name) => {
-      const lastWorkout = workouts.find((w) => w.exercise === name)!;
-      return {
-        id: lastWorkout.exercise,
-        lastPerformed: lastWorkout.tick,
-      };
-    });
-    db.importExercises(exercises);
-    db.importWorkouts(workouts);
-    toaster("Workouts replaced");
+    try {
+      const workouts = JSON.parse(exercisesDom.value) as WorkoutSet[];
+      const exerciseNames = Array.from(
+        new Set(workouts.map((workout) => workout.exercise))
+      );
+      const exercises: Exercise[] = exerciseNames.map((name) => {
+        const lastWorkout = workouts.find((w) => w.exercise === name)!;
+        return {
+          id: lastWorkout.exercise,
+          lastPerformed: lastWorkout.tick,
+        };
+      });
+      db.importExercises(exercises);
+      db.importWorkouts(workouts);
+      toaster("Workouts replaced");
+    } catch (ex) {
+      toaster(ex + "");
+    }
   });
 }
