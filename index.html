@@ -2,25 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta scale="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Meat Head</title>
     <link rel="stylesheet" href="./index.css" />
   </head>
-  <body class="dark">
+  <body class="dark no-overflow">
     <form id="form" class="container grid">
       <div
         class="small fill-width center col1 outline"
         data-bind="time-since-last-exercise"
       ></div>
-      <div class="col2 fill-width center outline">
+      <label class="col2 fill-width center outline" for="admin-menu">
         <select id="admin-menu" class="small dark-background light-text">
-          <option data-trigger="save">Save Exercise</option>
           <option data-trigger="clear">Clear Exercise</option>
           <option data-trigger="start-exercise">Start Exercise</option>
           <option data-trigger="create-exercise">Add Exercise</option>
           <option data-trigger="rename-exercise">Rename Exercise</option>
+          <option data-trigger="open-export-form">Export</option>
+          <option data-trigger="open-import-form">Import</option>
         </select>
-      </div>
+      </label>
       <div class="small fill-width center col3 outline">v1.0.1</div>
       <div class="spacer"></div>
       <select
@@ -30,7 +31,7 @@
         id="exercise"
         placeholder="Exercise"
       ></select>
-      <h2 class="col1-3">Weight</h2>
+      <label class="col1-3 center" for="weight">Weight</label>
       <input
         type="button"
         class="col1 action as-keypress"
@@ -53,7 +54,7 @@
         value="+"
         data-trigger="increment-weight"
       />
-      <h2 class="col1-3">Reps</h2>
+      <label class="col1-3 center" for="reps">Reps</label>
       <input
         type="button"
         class="col1 action as-keypress"

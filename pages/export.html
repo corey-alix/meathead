@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meat Head</title>
+    <link rel="stylesheet" href="../index.css" />
+  </head>
+  <body class="dark no-overflow">
+    <div class="fill-height-20 grid">
+      <button
+        class="button align-left col1"
+        data-trigger="copy-workouts-to-clipboard"
+      >
+        Copy
+      </button>
+      <span class="col2-3" style="width: 50vw">
+        <span class="bright hidden" id="toaster"> Notifications </span>
+      </span>
+      <div class="spacer col1-3"></div>
+    </div>
+    <textarea
+      readonly="1"
+      title="Copy and paste this text into a text editor to edit your workouts."
+      id="exercises"
+      class="small-font fill-width fill-height-80 dark-background light-text"
+    ></textarea>
+  </body>
+  <script type="module">
+    import { runExport } from "../dist/index.js";
+    runExport();
+  </script>
+</html>

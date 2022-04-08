@@ -5,6 +5,14 @@
   --color-bright: #0ff;
 }
 
+body {
+  margin: 1rem;
+  padding: 0;
+  width: calc(100vw - 2rem);
+  height: calc(100vh - 2rem);
+}
+
+.small-font,
 .small {
   font-size: 1.5rem;
 }
@@ -97,6 +105,18 @@ input[type="number"] {
   width: 100%;
 }
 
+.fill-height {
+  height: 100%;
+}
+
+.fill-height-20 {
+  height: 20%;
+}
+
+.fill-height-80 {
+  height: 80%;
+}
+
 .align-left {
   text-align: left;
 }
@@ -131,4 +151,8 @@ input[type="number"] {
 
 .no-border {
   border: none;
+}
+
+.no-overflow {
+  overflow: hidden;
 }

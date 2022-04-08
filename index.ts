@@ -1,7 +1,3 @@
-interface Globals {
-  exerciseStartTime?: number;
-}
-
 interface WorkoutSet {
   tick: number;
   exercise: string;
@@ -33,6 +29,11 @@ class Database {
 
   private saveWorkouts() {
     localStorage.setItem("exercises", JSON.stringify(this.#workouts));
+  }
+
+  public importWorkouts(workouts: WorkoutSet[]) {
+    this.#workouts = workouts;
+    this.saveWorkouts();
   }
 
   private saveExerices() {
@@ -87,184 +88,6 @@ class Database {
   getGlobal(key: string) {
     return this.#globals[key];
   }
-}
-
-export function run() {
-  const db = new Database();
-  const exerciseStore = db
-    .getExercises()
-    .sort((a, b) => (b.lastPerformed || 0) - (a.lastPerformed || 0));
-
-  let timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
-
-  const adminMenuDom = document.querySelector(
-    "#admin-menu"
-  ) as HTMLSelectElement;
-
-  const reportDom = document.getElementById("report-body") as HTMLTableElement;
-  const formDom = document.getElementById("form") as HTMLFormElement;
-  const exerciseDom = document.getElementById("exercise") as HTMLSelectElement;
-  const weightDom = document.getElementById("weight") as HTMLInputElement;
-  const repsDom = document.getElementById("reps") as HTMLInputElement;
-
-  on("update-report", () => {
-    const exerciseValue = exerciseDom.value;
-    const rows = db.getWorkouts(exerciseValue).sort((a, b) => b.tick - a.tick);
-    updateReport(reportDom, rows);
-  });
-
-  on("exercise-clear", () => updateReport(reportDom, []));
-
-  on("increment-reps", () => {
-    repsDom.focus();
-    increment(repsDom, 1);
-  });
-
-  on("increment-weight", () => {
-    weightDom.focus();
-    increment(weightDom, 1);
-  });
-
-  on("decrement-reps", () => {
-    repsDom.focus();
-    increment(repsDom, -1);
-  });
-
-  on("decrement-weight", () => {
-    weightDom.focus();
-    increment(weightDom, -1);
-  });
-
-  on("clear", () => {
-    weightDom.value = "";
-    repsDom.value = "";
-    exerciseDom.value = "";
-    db.setGlobal("exerciseStartTime", 0);
-    trigger("exercise-clear");
-  });
-
-  on("save", () => {
-    if (!formDom.reportValidity()) return;
-
-    const exerciseValue = exerciseDom.value;
-    const weightValue = parseInt(weightDom.value || "0");
-    const repValue = parseInt(repsDom.value || "0");
-
-    const work = weightValue * repValue;
-    if (work <= 0) return;
-
-    const exerciseModel = exerciseStore.find((e) => e.id === exerciseValue);
-    timeOfLastExercise = Date.now();
-    if (!exerciseModel) {
-      db.addExercise({ id: exerciseValue, lastPerformed: timeOfLastExercise });
-      addExerciseToDropdown(exerciseValue, exerciseDom);
-    } else {
-      moveExerciseToTopOfDropdown(exerciseValue, exerciseDom);
-      db.updateExercise({
-        id: exerciseValue,
-        lastPerformed: timeOfLastExercise,
-      });
-    }
-
-    const exerciseStartTime = db.getGlobal("exerciseStartTime");
-
-    const workout = {
-      tick: timeOfLastExercise,
-      exercise: exerciseValue,
-      weight: weightValue,
-      reps: repValue,
-      exerciseDuration: exerciseStartTime ? Date.now() - exerciseStartTime : 0,
-    };
-
-    // restart the exercise timer
-    if (exerciseStartTime) db.setGlobal("exerciseStartTime", Date.now());
-
-    insertReportItem(reportDom, workout);
-
-    db.addWorkout(workout);
-    trigger("saved");
-    trigger("update-report");
-  });
-
-  on("saved", () => {
-    // notify the user the workout was saved using a toaster slider
-    toaster("Workout Saved");
-  });
-
-  on("start-exercise", () => {
-    if (!formDom.reportValidity()) return;
-    const exerciseStartTime = db.getGlobal("exerciseStartTime");
-    if (!exerciseStartTime) {
-      db.setGlobal("exerciseStartTime", Date.now());
-      toaster("Timer Started");
-    } else {
-      db.setGlobal("exerciseStartTime", 0);
-      toaster("Timer Stopped");
-    }
-  });
-
-  on("create-exercise", () => {
-    const newName = prompt("New Exercise", "New Exercise");
-    if (!newName) return;
-    db.addExercise({ id: newName, lastPerformed: 0 });
-    addExerciseToDropdown(newName, exerciseDom);
-  });
-
-  on("rename-exercise", () => {
-    const exercise = exerciseDom.value || "unnamed";
-    const newName = prompt("New name", exercise);
-    if (!newName) return;
-    db.renameExercise(exercise, newName);
-  });
-
-  on("startup", () => {
-    console.log("loading exercises");
-    exerciseStore.forEach((x) => addExerciseToDropdown(x.id, exerciseDom));
-
-    applySticky(db);
-
-    applyBinds({
-      "time-since-last-exercise": (e: HTMLElement) => {
-        function doit() {
-          const exerciseStartTime = db.getGlobal("exerciseStartTime");
-          e.innerText = asDate(exerciseStartTime || timeOfLastExercise);
-        }
-        doit();
-        setInterval(() => requestAnimationFrame(doit), 1000);
-      },
-    });
-
-    applyTriggers();
-
-    exerciseDom.addEventListener("change", () => {
-      db.setGlobal("exerciseStartTime", 0);
-      trigger("update-report");
-      trigger("autofill");
-    });
-
-    [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
-    [exerciseDom].forEach(behaviorClearOnFocus);
-
-    adminMenuDom.value = "";
-    adminMenuDom.addEventListener("change", () => {
-      Array.from(adminMenuDom.selectedOptions).forEach((option) => {
-        const event = option.getAttribute("data-trigger");
-        if (event) trigger(event);
-        adminMenuDom.value = "";
-      });
-    });
-  });
-
-  on("autofill", () => {
-    const lastWorkout = db
-      .getWorkouts(exerciseDom.value)
-      .sort((a, b) => b.tick - a.tick)[0];
-    if (!lastWorkout) return;
-    weightDom.value = lastWorkout.weight.toString();
-    repsDom.value = lastWorkout.reps.toString();
-  });
-
-  trigger("startup");
 }
 
 function applySticky(db: Database) {
@@ -441,5 +264,241 @@ function applyBinds(binds: Record<string, (e: HTMLElement) => void>) {
     const e = document.querySelector(`[data-bind="${key}"]`) as HTMLElement;
     if (!e) return;
     cb(e);
+  });
+}
+
+/**
+ * Install a service workder to cache the app.
+ */
+function installServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then(() => {
+        console.log("Service worker installed");
+      })
+      .catch((err) => {
+        console.error("Service worker failed to install", err);
+      });
+  }
+}
+
+export function run() {
+  //installServiceWorker();
+  const db = new Database();
+  const exerciseStore = db
+    .getExercises()
+    .sort((a, b) => (b.lastPerformed || 0) - (a.lastPerformed || 0));
+
+  let timeOfLastExercise = exerciseStore[0]?.lastPerformed || 0;
+
+  const adminMenuDom = document.querySelector(
+    "#admin-menu"
+  ) as HTMLSelectElement;
+
+  const reportDom = document.getElementById("report-body") as HTMLTableElement;
+  const formDom = document.getElementById("form") as HTMLFormElement;
+  const exerciseDom = document.getElementById("exercise") as HTMLSelectElement;
+  const weightDom = document.getElementById("weight") as HTMLInputElement;
+  const repsDom = document.getElementById("reps") as HTMLInputElement;
+
+  on("update-report", () => {
+    const exerciseValue = exerciseDom.value;
+    const rows = db.getWorkouts(exerciseValue).sort((a, b) => b.tick - a.tick);
+    updateReport(reportDom, rows);
+  });
+
+  on("exercise-clear", () => updateReport(reportDom, []));
+
+  on("increment-reps", () => {
+    repsDom.focus();
+    increment(repsDom, 1);
+  });
+
+  on("increment-weight", () => {
+    weightDom.focus();
+    increment(weightDom, 1);
+  });
+
+  on("decrement-reps", () => {
+    repsDom.focus();
+    increment(repsDom, -1);
+  });
+
+  on("decrement-weight", () => {
+    weightDom.focus();
+    increment(weightDom, -1);
+  });
+
+  on("open-export-form", () => {
+    window.location.href = "./pages/export.html";
+  });
+
+  on("open-import-form", () => {
+    window.location.href = "./pages/import.html";
+  });
+
+  on("clear", () => {
+    weightDom.value = "";
+    repsDom.value = "";
+    exerciseDom.value = "";
+    db.setGlobal("exerciseStartTime", 0);
+    trigger("exercise-clear");
+  });
+
+  on("save", () => {
+    if (!formDom.reportValidity()) return;
+
+    const exerciseValue = exerciseDom.value;
+    const weightValue = parseInt(weightDom.value || "0");
+    const repValue = parseInt(repsDom.value || "0");
+
+    const work = weightValue * repValue;
+    if (work <= 0) return;
+
+    const exerciseModel = exerciseStore.find((e) => e.id === exerciseValue);
+    timeOfLastExercise = Date.now();
+    if (!exerciseModel) {
+      db.addExercise({ id: exerciseValue, lastPerformed: timeOfLastExercise });
+      addExerciseToDropdown(exerciseValue, exerciseDom);
+    } else {
+      moveExerciseToTopOfDropdown(exerciseValue, exerciseDom);
+      db.updateExercise({
+        id: exerciseValue,
+        lastPerformed: timeOfLastExercise,
+      });
+    }
+
+    const exerciseStartTime = db.getGlobal("exerciseStartTime");
+
+    const workout = {
+      tick: timeOfLastExercise,
+      exercise: exerciseValue,
+      weight: weightValue,
+      reps: repValue,
+      exerciseDuration: exerciseStartTime ? Date.now() - exerciseStartTime : 0,
+    };
+
+    // restart the exercise timer
+    if (exerciseStartTime) db.setGlobal("exerciseStartTime", Date.now());
+
+    insertReportItem(reportDom, workout);
+
+    db.addWorkout(workout);
+    trigger("saved");
+    trigger("update-report");
+  });
+
+  on("saved", () => {
+    // notify the user the workout was saved using a toaster slider
+    toaster("Workout Saved");
+  });
+
+  on("start-exercise", () => {
+    if (!formDom.reportValidity()) return;
+    const exerciseStartTime = db.getGlobal("exerciseStartTime");
+    if (!exerciseStartTime) {
+      db.setGlobal("exerciseStartTime", Date.now());
+      toaster("Timer Started");
+    } else {
+      db.setGlobal("exerciseStartTime", 0);
+      toaster("Timer Stopped");
+    }
+  });
+
+  on("create-exercise", () => {
+    const newName = prompt("New Exercise", "New Exercise");
+    if (!newName) return;
+    db.addExercise({ id: newName, lastPerformed: 0 });
+    addExerciseToDropdown(newName, exerciseDom);
+  });
+
+  on("rename-exercise", () => {
+    const exercise = exerciseDom.value || "unnamed";
+    const newName = prompt("New name", exercise);
+    if (!newName) return;
+    db.renameExercise(exercise, newName);
+  });
+
+  on("startup", () => {
+    console.log("loading exercises");
+    exerciseStore.forEach((x) => addExerciseToDropdown(x.id, exerciseDom));
+
+    applySticky(db);
+
+    applyBinds({
+      "time-since-last-exercise": (e: HTMLElement) => {
+        function doit() {
+          const exerciseStartTime = db.getGlobal("exerciseStartTime");
+          e.innerText = asDate(exerciseStartTime || timeOfLastExercise);
+        }
+        doit();
+        setInterval(() => requestAnimationFrame(doit), 1000);
+      },
+    });
+
+    applyTriggers();
+
+    exerciseDom.addEventListener("change", () => {
+      db.setGlobal("exerciseStartTime", 0);
+      trigger("update-report");
+      trigger("autofill");
+    });
+
+    [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
+    [exerciseDom].forEach(behaviorClearOnFocus);
+
+    adminMenuDom.value = "";
+    adminMenuDom.addEventListener("change", () => {
+      Array.from(adminMenuDom.selectedOptions).forEach((option) => {
+        const event = option.getAttribute("data-trigger");
+        if (event) trigger(event);
+        adminMenuDom.value = "";
+      });
+    });
+  });
+
+  on("autofill", () => {
+    const lastWorkout = db
+      .getWorkouts(exerciseDom.value)
+      .sort((a, b) => b.tick - a.tick)[0];
+    if (!lastWorkout) return;
+    weightDom.value = lastWorkout.weight.toString();
+    repsDom.value = lastWorkout.reps.toString();
+  });
+
+  trigger("startup");
+}
+
+export function runExport() {
+  applyTriggers();
+  const db = new Database();
+  const exercises = db.getExercises();
+  const exercisesDom = document.querySelector(
+    "#exercises"
+  ) as HTMLTextAreaElement;
+  const workouts = exercises
+    .map((exercise) => db.getWorkouts(exercise.id))
+    .flat(1);
+  exercisesDom.value = JSON.stringify(workouts, null, "  ");
+  exercisesDom.select();
+  on("copy-workouts-to-clipboard", () => {
+    const data = exercisesDom.value;
+    navigator.clipboard.writeText(data);
+    toaster("Workouts copied to clipboard");
+  });
+}
+
+export function runImport() {
+  applyTriggers();
+  const db = new Database();
+  const exercisesDom = document.querySelector(
+    "#exercises"
+  ) as HTMLTextAreaElement;
+
+  on("import-workouts", () => {
+    const workouts = JSON.parse(exercisesDom.value) as WorkoutSet[];
+    db.importWorkouts(workouts);
+    toaster("Workouts replaced");
   });
 }
