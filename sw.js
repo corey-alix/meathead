@@ -2,7 +2,14 @@
 const cacheName = "cache-v1";
 
 // List the files to precache
-const precacheResources = ["./index.html", "./index.css", "./dist/index.js"];
+const precacheResources = [
+  "./index.html",
+  "./index.css",
+  "./dist/index.js",
+  "./pages/edit-workout.html",
+  "./pages/export.html",
+  "./pages/import.html",
+];
 
 // When the service worker is installing, open the cache and add the precache resources to it
 self.addEventListener("install", (event) => {
@@ -16,16 +23,30 @@ self.addEventListener("activate", (event) => {
   console.log("Service worker activate event!");
 });
 
-// When there's an incoming fetch request, try and respond with a precached resource, otherwise fall back to the network
-self.addEventListener("fetch", (event) => {
+self.addEventListener("fetch", async (event) => {
   console.log("Fetch intercepted for:", event.request.url);
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        fetch(event.request); // update the cache
+        console.log("Found in cache:", event.request.url);
+        updateCache(cachedResponse, event);
         return cachedResponse;
       }
-      return fetch(event.request);
+      return updateCache(cachedResponse, event);
     })
   );
 });
+
+function updateCache(cachedResponse, event) {
+  cachedResponse = fetch(event.request).then((response) => {
+    const foo = response.clone();
+    if (response.ok) {
+      caches.open(cacheName).then((cache) => {
+        cache.put(event.request, foo);
+        console.log("Cache updated:", event.request.url);
+      });
+    }
+    return response;
+  });
+  return cachedResponse;
+}
