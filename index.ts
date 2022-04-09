@@ -323,7 +323,7 @@ function installServiceWorker() {
 }
 
 export function run() {
-  //installServiceWorker();
+  installServiceWorker();
   const db = new Database();
   const exerciseStore = db
     .getExercises()

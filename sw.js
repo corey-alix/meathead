@@ -1,5 +1,6 @@
 // Choose a cache name
 const cacheName = "cache-v1";
+
 // List the files to precache
 const precacheResources = ["./index.html", "./index.css", "./dist/index.js"];
 
@@ -21,6 +22,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
+        fetch(event.request); // update the cache
         return cachedResponse;
       }
       return fetch(event.request);
