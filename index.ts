@@ -99,7 +99,6 @@ class Database {
     workouts.forEach((w) => (w.exercise = name));
     this.saveExerices();
     this.saveWorkouts();
-    window.location.reload();
   }
 
   setGlobal(key: string, value: any) {
@@ -122,9 +121,10 @@ function applySticky(db: Database) {
       db.setGlobal(s.id, value);
     });
     const value = db.getGlobal(s.id);
+    // when select is "" bad things happen
     if (value) {
-      if (s.value != value) {
-        s.value = value;
+      s.value = value;
+      if (s.value) {
         s.dispatchEvent(new Event("change"));
       }
     }
@@ -460,6 +460,14 @@ export function run() {
     const newName = prompt("New name", exercise);
     if (!newName) return;
     db.renameExercise(exercise, newName);
+    const option = exerciseDom.querySelector(
+      `option[value="${exercise}"]`
+    ) as HTMLOptionElement;
+    if (option) {
+      option.value = newName;
+      option.text = newName;
+      exerciseDom.value = newName;
+    }
   });
 
   on("edit-workout", (e: HTMLElement) => {
