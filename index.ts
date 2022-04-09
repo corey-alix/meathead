@@ -122,7 +122,7 @@ function applySticky(db: Database) {
       db.setGlobal(s.id, value);
     });
     const value = db.getGlobal(s.id);
-    if (typeof value != "undefined") {
+    if (value) {
       if (s.value != value) {
         s.value = value;
         s.dispatchEvent(new Event("change"));
