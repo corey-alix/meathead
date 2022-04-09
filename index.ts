@@ -426,6 +426,9 @@ export function run() {
     db.addWorkout(workout);
     trigger("saved");
     trigger("update-report");
+
+    const orm = compute1RepMaxUsingWathan(workout.weight, workout.reps);
+    show("#latestOrm", `${orm.toFixed(0)}`);
   });
 
   on("saved", () => {
@@ -513,6 +516,8 @@ export function run() {
     if (!lastWorkout) return;
     weightDom.value = lastWorkout.weight.toString();
     repsDom.value = lastWorkout.reps.toString();
+    const orm = compute1RepMaxUsingWathan(lastWorkout.weight, lastWorkout.reps);
+    show("#latestOrm", `${orm.toFixed(0)}`);
   });
 
   trigger("startup");
