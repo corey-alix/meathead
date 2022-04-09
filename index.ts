@@ -230,6 +230,10 @@ function behaviorClearOnFocus(e: HTMLInputElement | HTMLSelectElement) {
   e.addEventListener("focus", () => (e.value = ""));
 }
 
+function compute1RepMaxUsingWathan(weight: number, reps: number) {
+  return (weight * 100) / (48.8 + 53.8 * Math.pow(Math.E, -0.075 * reps));
+}
+
 function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
   const header = `
   <span class="col1 fill-width underline align-left">Date</span>
@@ -341,6 +345,10 @@ export function run() {
     const exerciseValue = exerciseDom.value;
     const rows = db.getWorkouts(exerciseValue).sort((a, b) => b.tick - a.tick);
     updateReport(reportDom, rows);
+    const maxOrm = Math.max(
+      ...rows.map((r) => compute1RepMaxUsingWathan(r.weight, r.reps))
+    );
+    show("#orm", `1RM=${maxOrm.toFixed(0)}`);
   });
 
   on("exercise-clear", () => updateReport(reportDom, []));
@@ -584,5 +592,12 @@ export function runEditWorkout() {
     window.history.back();
   });
 }
+
+function show(selector: string, value: string) {
+  const dom = document.querySelector(selector) as HTMLElement;
+  if (!dom) return;
+  dom.innerText = value;
+}
+
 // import { workouts } from "./test/workouts.js";
 // console.log(JSON.stringify(workouts, null, " "));
