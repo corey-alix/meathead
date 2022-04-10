@@ -1,3 +1,5 @@
+import { workouts } from "./test/workouts";
+
 interface WorkoutSet {
   tick: number;
   exercise: string;
@@ -14,6 +16,42 @@ interface Exercise {
 const globals = {
   version: "1.0.2",
 };
+
+class DateFun {
+  private static readonly ticksPerDay = 24 * 60 * 60 * 1000;
+  private static readonly daysPerWeek = 7;
+  private static readonly weeksPerMonth = 4;
+
+  static FromWeeksAgo(weeksAgo: number) {
+    return Date.now() - weeksAgo * DateFun.ticksPerDay * DateFun.daysPerWeek;
+  }
+
+  static FromMonthsAgo(monthsAgo: number): number {
+    return (
+      Date.now() -
+      monthsAgo *
+        DateFun.ticksPerDay *
+        DateFun.daysPerWeek *
+        DateFun.weeksPerMonth
+    );
+  }
+  static ticksAgo(tick: number) {
+    return Date.now() - tick;
+  }
+
+  static monthsAgo(tick: number) {
+    return Math.floor(
+      DateFun.ticksAgo(tick) /
+        (DateFun.ticksPerDay * DateFun.daysPerWeek * DateFun.weeksPerMonth)
+    );
+  }
+
+  static weeksAgo(tick: number) {
+    return Math.floor(
+      DateFun.ticksAgo(tick) / (DateFun.ticksPerDay * DateFun.daysPerWeek)
+    );
+  }
+}
 
 class Database {
   updateWorkout(workout: WorkoutSet) {
@@ -222,13 +260,13 @@ function on(trigger: string, callback: (node: HTMLElement) => void) {
   });
 }
 
-function behaviorSelectAllOnFocus(e: HTMLInputElement) {
-  e.addEventListener("focus", () => e.select());
-}
+const behaviors = {
+  selectAllOnFocus: (e: HTMLInputElement) =>
+    e.addEventListener("focus", () => e.select()),
 
-function behaviorClearOnFocus(e: HTMLInputElement | HTMLSelectElement) {
-  e.addEventListener("focus", () => (e.value = ""));
-}
+  clearOnFocus: (e: HTMLInputElement | HTMLSelectElement) =>
+    e.addEventListener("focus", () => (e.value = "")),
+};
 
 function compute1RepMaxUsingWathan(weight: number, reps: number) {
   return (weight * 100) / (48.8 + 53.8 * Math.pow(Math.E, -0.075 * reps));
@@ -241,29 +279,86 @@ function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
   <span class="col3 fill-width underline align-right">Weight</span>
 `;
 
-  const html = rows.map((r) => createReportRow(r));
-  report.innerHTML = header + html.join("");
+  const itemsThisWeek = rows.filter((r) => {
+    return 0 === DateFun.weeksAgo(r.tick);
+  });
+
+  // last 35 days aggregated weekly
+  const itemsThisMonth = rows
+    .filter((r) => {
+      const week = DateFun.weeksAgo(r.tick);
+      return 0 <= week && week <= 4;
+    })
+    .map((workout) => ({ ...workout, group: DateFun.weeksAgo(workout.tick) }));
+
+  let html =
+    header +
+    itemsThisWeek
+      .map((r) =>
+        createReportRow({
+          key: r.tick,
+          col1: asDate(r.tick),
+          col2: r.exerciseDuration
+            ? `${asDate(Date.now() - r.exerciseDuration)} ${r.reps}`
+            : r.reps.toFixed(0),
+          col3: r.weight.toFixed(0),
+        })
+      )
+      .join("") +
+    findMax(itemsThisMonth)
+      .map((r) =>
+        createReportRow({
+          key: `week(${r.tick})`,
+          col1: `${r.tick}w`,
+          col2: "1RM",
+          col3: r.weight.toFixed(1),
+        })
+      )
+      .join("");
+  report.innerHTML = html;
   applyTriggers(report);
   report.parentElement?.classList.toggle("hidden", rows.length === 0);
 }
 
+function findMax(items: (WorkoutSet & { group: number })[]) {
+  const groups = [] as Array<number>;
+  items.forEach((item) => {
+    const orm = Math.floor(compute1RepMaxUsingWathan(item.weight, item.reps));
+    groups[item.group] = Math.max(groups[item.group] || 0, orm);
+  });
+  return groups.map((orm, groupId) => ({
+    weight: orm,
+    reps: 1,
+    tick: groupId,
+    exercise: "",
+    exerciseDuration: 0,
+  }));
+}
+
 function insertReportItem(report: HTMLTableElement, row: WorkoutSet) {
-  const html = createReportRow(row);
+  const html = createReportRow({
+    key: row.tick,
+    col1: asDate(row.tick),
+    col2: row.reps.toFixed(0),
+    col3: row.weight.toFixed(0),
+  });
   report.insertAdjacentHTML("afterbegin", html);
   report.parentElement?.classList.remove("hidden");
 }
 
-function createReportRow(r: WorkoutSet): string {
-  const col2 = r.exerciseDuration
-    ? `${asDate(Date.now() - r.exerciseDuration)} ${r.reps}`
-    : r.reps;
+function createReportRow(r: {
+  key: number | string;
+  col1: string;
+  col2: string;
+  col3: string;
+}): string {
   return `
   <button 
     class="col1 fill-width align-left dark-background light-text no-border" 
     data-trigger="edit-workout" 
-    data-id="${r.tick}">${asDate(r.tick)}</button>
-  <span class="col2 fill-width align-right">${col2}</span>
-  <span class="col3 fill-width align-right">${r.weight}</span>`;
+    data-id="${r.key}">${r.col1}</button>
+  <span class="col2 fill-width align-right">${r.col2}</span>
+  <span class="col3 fill-width align-right">${r.col3}</span>`;
 }
 
 function asDate(tick: number) {
@@ -323,7 +418,7 @@ function installServiceWorker() {
 }
 
 export function run() {
-  installServiceWorker();
+  //installServiceWorker();
   const db = new Database();
   const exerciseStore = db
     .getExercises()
@@ -504,7 +599,7 @@ export function run() {
 
     applyTriggers();
 
-    [weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
+    [weightDom, repsDom].forEach(behaviors.selectAllOnFocus);
     //[exerciseDom].forEach(behaviorClearOnFocus);
 
     adminMenuDom.value = "";
@@ -592,7 +687,7 @@ export function runEditWorkout() {
   const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
   const weightDom = document.getElementById("weight") as HTMLInputElement;
   const repsDom = document.getElementById("reps") as HTMLInputElement;
-  [exerciseDom, weightDom, repsDom].forEach(behaviorSelectAllOnFocus);
+  [exerciseDom, weightDom, repsDom].forEach(behaviors.selectAllOnFocus);
   exerciseDom.value = workout.exercise;
   repsDom.value = workout.reps.toString();
   weightDom.value = workout.weight.toString();
