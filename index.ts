@@ -1,4 +1,4 @@
-import { workouts } from "./test/workouts";
+//import { workouts } from "./test/workouts";
 
 interface WorkoutSet {
   tick: number;
@@ -159,8 +159,8 @@ function applySticky(db: Database) {
       db.setGlobal(s.id, value);
     });
     const value = db.getGlobal(s.id);
-    // when select is "" bad things happen
-    if (value) {
+    // be careful not to create a change trigger loop
+    if (value && value != s.value) {
       s.value = value;
       if (s.value) {
         s.dispatchEvent(new Event("change"));
@@ -317,7 +317,6 @@ function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
       .join("");
   report.innerHTML = html;
   applyTriggers(report);
-  report.parentElement?.classList.toggle("hidden", rows.length === 0);
 }
 
 function findMax(items: (WorkoutSet & { group: number })[]) {
@@ -343,7 +342,6 @@ function insertReportItem(report: HTMLTableElement, row: WorkoutSet) {
     col3: row.weight.toFixed(0),
   });
   report.insertAdjacentHTML("afterbegin", html);
-  report.parentElement?.classList.remove("hidden");
 }
 
 function createReportRow(r: {
@@ -441,6 +439,7 @@ export function run() {
     const rows = db.getWorkouts(exerciseValue).sort((a, b) => b.tick - a.tick);
     updateReport(reportDom, rows);
     const maxOrm = Math.max(
+      0,
       ...rows.map((r) => compute1RepMaxUsingWathan(r.weight, r.reps))
     );
     show("#orm", `1RM=${maxOrm.toFixed(0)}`);
@@ -546,7 +545,7 @@ export function run() {
   on("create-exercise", () => {
     const newName = prompt("New Exercise", "New Exercise");
     if (!newName) return;
-    db.addExercise({ id: newName, lastPerformed: 0 });
+    db.addExercise({ id: newName, lastPerformed: Date.now() });
     addExerciseToDropdown(newName, exerciseDom);
   });
 
