@@ -29,5 +29,5 @@ Weight Training App
 
 # Known Issues
 
-- FIXED: After a row edit the grid disappears
-- CANNOT REPRODUCE: Changes are not applied after editing a row
+- Changes are not always rendered after editing a row (back may not be re-running the page in battery saver mode)
+- Export exports workouts but not exercise definitions

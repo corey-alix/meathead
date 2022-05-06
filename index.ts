@@ -8,9 +8,14 @@ interface WorkoutSet {
   exerciseDuration: number;
 }
 
+interface ReportOptions {
+  show1rm?: boolean;
+}
+
 interface Exercise {
   id: string;
   lastPerformed: number;
+  reportOptions: ReportOptions;
 }
 
 const globals = {
@@ -103,6 +108,10 @@ class Database {
 
   private saveGlobals() {
     localStorage.setItem("globals", JSON.stringify(this.#globals));
+  }
+
+  getExercise(id: string) {
+    return this.#exercises.find((e) => e.id === id);
   }
 
   getExercises() {
@@ -273,7 +282,11 @@ function compute1RepMaxUsingWathan(weight: number, reps: number) {
   return (weight * 100) / (48.8 + 53.8 * Math.pow(Math.E, -0.075 * reps));
 }
 
-function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
+function updateReport(
+  report: HTMLTableElement,
+  exercise: Exercise | null,
+  rows: WorkoutSet[]
+) {
   const header = `
   <span class="col1 fill-width underline align-left">Date</span>
   <span class="col2 fill-width underline align-right">Reps</span>
@@ -305,8 +318,10 @@ function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
           col3: r.weight.toFixed(0),
         })
       )
-      .join("") +
-    findMax(itemsThisMonth)
+      .join("");
+
+  if (false !== exercise?.reportOptions?.show1rm) {
+    html += findMax(itemsThisMonth)
       .map((r) =>
         createReportRow({
           key: `week(${r.tick})`,
@@ -316,6 +331,8 @@ function updateReport(report: HTMLTableElement, rows: WorkoutSet[]) {
         })
       )
       .join("");
+  }
+
   report.innerHTML = html;
   applyTriggers(report);
 }
@@ -437,8 +454,10 @@ export function run() {
 
   on("update-report", () => {
     const exerciseValue = exerciseDom.value;
+    const exercise = db.getExercises().find((e) => e.id === exerciseValue);
+    if (!exercise) throw new Error(`Exercise not found: ${exercise}`);
     const rows = db.getWorkouts(exerciseValue).sort((a, b) => b.tick - a.tick);
-    updateReport(reportDom, rows);
+    updateReport(reportDom, exercise, rows);
     const maxOrm = Math.max(
       0,
       ...rows.map((r) => compute1RepMaxUsingWathan(r.weight, r.reps))
@@ -446,7 +465,7 @@ export function run() {
     show("#orm", `1RM=${maxOrm.toFixed(0)}`);
   });
 
-  on("exercise-clear", () => updateReport(reportDom, []));
+  on("exercise-clear", () => updateReport(reportDom, null, []));
 
   on("increment-reps", () => {
     increment(repsDom, 1);
@@ -493,13 +512,22 @@ export function run() {
     const exerciseModel = exerciseStore.find((e) => e.id === exerciseValue);
     timeOfLastExercise = Date.now();
     if (!exerciseModel) {
-      db.addExercise({ id: exerciseValue, lastPerformed: timeOfLastExercise });
+      db.addExercise({
+        id: exerciseValue,
+        lastPerformed: timeOfLastExercise,
+        reportOptions: {
+          show1rm: true,
+        },
+      });
       addExerciseToDropdown(exerciseValue, exerciseDom);
     } else {
       moveExerciseToTopOfDropdown(exerciseValue, exerciseDom);
       db.updateExercise({
         id: exerciseValue,
         lastPerformed: timeOfLastExercise,
+        reportOptions: {
+          show1rm: true,
+        },
       });
     }
 
@@ -546,7 +574,11 @@ export function run() {
   on("create-exercise", () => {
     const newName = prompt("New Exercise", "New Exercise");
     if (!newName) return;
-    db.addExercise({ id: newName, lastPerformed: Date.now() });
+    db.addExercise({
+      id: newName,
+      lastPerformed: Date.now(),
+      reportOptions: {},
+    });
     addExerciseToDropdown(newName, exerciseDom);
   });
 
@@ -668,6 +700,7 @@ export function runImport() {
       const exerciseNames = Array.from(
         new Set(workouts.map((workout) => workout.exercise))
       );
+
       const exercises: Exercise[] = exerciseNames.map((id) => {
         const lastPerformed = Math.max(
           ...workouts.filter((w) => w.exercise === id)!.map((w) => w.tick)
@@ -675,6 +708,7 @@ export function runImport() {
         return {
           id,
           lastPerformed,
+          reportOptions: {},
         };
       });
       db.importExercises(exercises);
