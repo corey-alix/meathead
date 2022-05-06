@@ -353,12 +353,12 @@ function updateReport(
   }
 
   if (false !== exercise?.reportOptions?.showsum) {
-    html += findSum(itemsThisMonth, (w, r) => w)
+    html += findSum(itemsThisMonth, (w, r) => w * r)
       .map((r) =>
         createReportRow({
           key: `week(${r.tick})`,
           col1: `${r.tick}w`,
-          col2: "Sum",
+          col2: "RW",
           col3: r.weight.toFixed(1),
         })
       )
@@ -632,19 +632,11 @@ export function run() {
     addExerciseToDropdown(newName, exerciseDom);
   });
 
-  on("rename-exercise", () => {
-    const exercise = exerciseDom.value || "unnamed";
-    const newName = prompt("New name", exercise);
-    if (!newName) return;
-    db.renameExercise(exercise, newName);
-    const option = exerciseDom.querySelector(
-      `option[value="${exercise}"]`
-    ) as HTMLOptionElement;
-    if (option) {
-      option.value = newName;
-      option.text = newName;
-      exerciseDom.value = newName;
-    }
+  on("edit-exercise", () => {
+    const exerciseValue = exerciseDom.value;
+    const exercise = db.getExercises().find((e) => e.id === exerciseValue);
+    if (!exercise) throw new Error(`Exercise not found: ${exercise}`);
+    window.location.href = `./pages/edit-exercise.html?id=${exercise.id}`;
   });
 
   on("edit-workout", (e: HTMLElement) => {
@@ -778,6 +770,7 @@ export function runEditWorkout() {
   const workout = db.getWorkout(Number.parseInt(id));
   if (!workout) throw new Error("no workout");
   applyTriggers();
+
   const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
   const weightDom = document.getElementById("weight") as HTMLInputElement;
   const repsDom = document.getElementById("reps") as HTMLInputElement;
@@ -785,6 +778,7 @@ export function runEditWorkout() {
   exerciseDom.value = workout.exercise;
   repsDom.value = workout.reps.toString();
   weightDom.value = workout.weight.toString();
+
   on("change-workout", () => {
     workout.exercise = exerciseDom.value;
     workout.reps = Number.parseInt(repsDom.value);
@@ -803,3 +797,39 @@ function show(selector: string, value: string) {
 
 // import { workouts } from "./test/workouts.js";
 // console.log(JSON.stringify(workouts, null, " "));
+
+export function runEditExercise() {
+  const id = new URLSearchParams(window.location.search).get("id");
+  if (!id) throw new Error("no id");
+  const db = new Database();
+  const exercise = db.getExercise(id);
+  if (!exercise) throw new Error("no exercise found");
+  applyTriggers();
+
+  const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
+  const options: Array<keyof ReportOptions> = ["show1rm", "showmax", "showsum"];
+  exerciseDom.value = id;
+  options.forEach((id) => {
+    const dom = document.getElementById(id) as HTMLInputElement;
+    if (!dom) return;
+    dom.checked = false !== exercise!.reportOptions[id];
+  });
+
+  on("change-exercise", () => {
+    if (exerciseDom.value != exercise.id) {
+      db.renameExercise(exercise.id, exerciseDom.value);
+      exercise.id = exerciseDom.value;
+    }
+
+    options.forEach((id) => {
+      const dom = document.getElementById(id) as HTMLInputElement;
+      if (!dom) return;
+      exercise.reportOptions[id] = dom.checked;
+    });
+
+    db.updateExercise(exercise);
+
+    toaster("Exercise updated");
+    window.history.back();
+  });
+}

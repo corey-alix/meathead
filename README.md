@@ -5,6 +5,7 @@ Weight Training App
 ## Version 1.0.3
 
 - Mark exercises to not report 1RM (dry weight, climbing routes, bike routes)
+  - create exercise editor to allow for editing the name and report options
 - Report shortest/longest times (dead hang time vs lap times)
 - Report daily 1RM 1 week out,
   - weekly 1RM, 1 month out

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meat Head</title>
+    <link rel="stylesheet" href="../index.css" />
+  </head>
+  <body class="dark">
+    <div class="grid">
+      <label for="exercise" class="col1-3 fill-width">Exercise</label>
+      <input
+        id="exercise"
+        class="col1-3 fill-width"
+        type="text"
+        placeholder="Exercise"
+      />
+      <label for="show1rm" class="col1-2 fill-width">Show One Rep Max</label>
+      <input id="show1rm" type="checkbox" class="col3" />
+      <label for="showmax" class="col1-2 fill-width">Show Max Weight</label>
+      <input id="showmax" type="checkbox" class="col3" />
+      <label for="showsum" class="col1-2 fill-width">Show Total Volume</label>
+      <input id="showsum" type="checkbox" class="col3" />
+      <span class="spacer col1-3"></span>
+      <button
+        class="col3 fill-width"
+        type="submit"
+        data-trigger="change-exercise"
+      >
+        Apply Changes
+      </button>
+      <span class="spacer col1-3"></span>
+    </div>
+    <span class="toaster pad">
+      <span class="bright hidden dark-background pad2" id="toaster">
+        Notifications
+      </span>
+    </span>
+    <script type="module">
+      import { runEditExercise } from "../dist/index.js";
+      runEditExercise();
+    </script>
+  </body>
+</html>
