@@ -1,4 +1,8 @@
 //import { workouts } from "./test/workouts";
+interface ImportExportFormat {
+  exercises: Exercise[];
+  workouts: WorkoutSet[];
+}
 
 interface WorkoutSet {
   tick: number;
@@ -10,6 +14,8 @@ interface WorkoutSet {
 
 interface ReportOptions {
   show1rm?: boolean;
+  showmax?: boolean;
+  showsum?: boolean;
 }
 
 interface Exercise {
@@ -321,7 +327,7 @@ function updateReport(
       .join("");
 
   if (false !== exercise?.reportOptions?.show1rm) {
-    html += findMax(itemsThisMonth)
+    html += findMax(itemsThisMonth, compute1RepMaxUsingWathan)
       .map((r) =>
         createReportRow({
           key: `week(${r.tick})`,
@@ -333,15 +339,45 @@ function updateReport(
       .join("");
   }
 
+  if (false !== exercise?.reportOptions?.showmax) {
+    html += findMax(itemsThisMonth, (w, r) => w)
+      .map((r) =>
+        createReportRow({
+          key: `week(${r.tick})`,
+          col1: `${r.tick}w`,
+          col2: "Max",
+          col3: r.weight.toFixed(1),
+        })
+      )
+      .join("");
+  }
+
+  if (false !== exercise?.reportOptions?.showsum) {
+    html += findSum(itemsThisMonth, (w, r) => w)
+      .map((r) =>
+        createReportRow({
+          key: `week(${r.tick})`,
+          col1: `${r.tick}w`,
+          col2: "Sum",
+          col3: r.weight.toFixed(1),
+        })
+      )
+      .join("");
+  }
+
   report.innerHTML = html;
   applyTriggers(report);
 }
 
-function findMax(items: (WorkoutSet & { group: number })[]) {
+function findOp(
+  items: (WorkoutSet & { group: number })[],
+  op: (weight: number, reps: number) => number,
+  aggregator: (...a: number[]) => number
+) {
   const groups = [] as Array<number>;
   items.forEach((item) => {
-    const orm = Math.floor(compute1RepMaxUsingWathan(item.weight, item.reps));
-    groups[item.group] = Math.max(groups[item.group] || 0, orm);
+    const orm = Math.floor(op(item.weight, item.reps));
+    groups[item.group] = aggregator(groups[item.group] || 0, orm);
   });
   return groups.map((orm, groupId) => ({
     weight: orm,
@@ -350,6 +386,20 @@ function findMax(items: (WorkoutSet & { group: number })[]) {
     exercise: "",
     exerciseDuration: 0,
   }));
+}
+
+function findMax(
+  items: (WorkoutSet & { group: number })[],
+  op: (weight: number, reps: number) => number
+) {
+  return findOp(items, op, Math.max);
+}
+
+function findSum(
+  items: (WorkoutSet & { group: number })[],
+  op: (weight: number, reps: number) => number
+) {
+  return findOp(items, op, (a, b) => a + b);
 }
 
 function insertReportItem(report: HTMLTableElement, row: WorkoutSet) {
@@ -678,7 +728,9 @@ export function runExport() {
   const workouts = exercises
     .map((exercise) => db.getWorkouts(exercise.id))
     .flat(1);
-  exercisesDom.value = JSON.stringify(workouts, null, "  ");
+
+  const exportData: ImportExportFormat = { exercises, workouts };
+  exercisesDom.value = JSON.stringify(exportData, null, "  ");
   exercisesDom.select();
   on("copy-workouts-to-clipboard", () => {
     const data = exercisesDom.value;
@@ -696,23 +748,21 @@ export function runImport() {
 
   on("import-workouts", () => {
     try {
-      const workouts = JSON.parse(exercisesDom.value) as WorkoutSet[];
-      const exerciseNames = Array.from(
-        new Set(workouts.map((workout) => workout.exercise))
-      );
+      const exportData = JSON.parse(exercisesDom.value) as ImportExportFormat;
 
-      const exercises: Exercise[] = exerciseNames.map((id) => {
-        const lastPerformed = Math.max(
-          ...workouts.filter((w) => w.exercise === id)!.map((w) => w.tick)
-        );
-        return {
-          id,
-          lastPerformed,
-          reportOptions: {},
+      exportData.exercises.forEach((exercise) => {
+        exercise.reportOptions = exercise.reportOptions || {
+          show1rm: true,
+          showmax: true,
         };
+        if (false !== exercise.reportOptions?.show1rm)
+          exercise.reportOptions.show1rm = true;
+        if (false !== exercise.reportOptions?.showmax)
+          exercise.reportOptions.showmax = true;
       });
-      db.importExercises(exercises);
-      db.importWorkouts(workouts);
+
+      db.importExercises(exportData.exercises);
+      db.importWorkouts(exportData.workouts);
       toaster("Workouts replaced");
     } catch (ex) {
       toaster(ex + "");

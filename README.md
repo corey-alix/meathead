@@ -30,4 +30,4 @@ Weight Training App
 # Known Issues
 
 - Changes are not always rendered after editing a row (back may not be re-running the page in battery saver mode)
-- Export exports workouts but not exercise definitions
+- FIXED: Export exports workouts but not exercise definitions
