@@ -809,10 +809,13 @@ export function runEditExercise() {
   const exerciseDom = document.getElementById("exercise") as HTMLInputElement;
   const options: Array<keyof ReportOptions> = ["show1rm", "showmax", "showsum"];
   exerciseDom.value = id;
+
+  exercise.reportOptions = exercise.reportOptions || {};
+
   options.forEach((id) => {
     const dom = document.getElementById(id) as HTMLInputElement;
     if (!dom) return;
-    dom.checked = false !== exercise!.reportOptions[id];
+    dom.checked = false !== exercise.reportOptions[id];
   });
 
   on("change-exercise", () => {
