@@ -14,7 +14,8 @@ interface Exercise {
 }
 
 const globals = {
-  version: "1.0.2",
+  version: "1.0.3",
+  beta: true,
 };
 
 class DateFun {
@@ -416,7 +417,7 @@ function installServiceWorker() {
 }
 
 export function run() {
-  //installServiceWorker();
+  if (!globals.beta) installServiceWorker();
   const db = new Database();
   const exerciseStore = db
     .getExercises()
@@ -570,21 +571,27 @@ export function run() {
   });
 
   on("startup", () => {
+    // report globals
     Object.keys(globals).forEach((id) => {
       const target = document.getElementById(id);
-      if (target) target.innerText = globals[<keyof typeof globals>(<any>id)];
+      if (target)
+        target.innerText = globals[<keyof typeof globals>(<any>id)] + "";
     });
 
+    // populate the exercise dropdown
     exerciseStore.forEach((x) => addExerciseToDropdown(x.id, exerciseDom));
 
+    // watch for user to select an exercise
     exerciseDom.addEventListener("change", () => {
       db.setGlobal("exerciseStartTime", 0);
       trigger("update-report");
       trigger("autofill");
     });
 
+    // autofill the form with the last workout
     applySticky(db);
 
+    // report pre-defined bindings
     applyBinds({
       "time-since-last-exercise": (e: HTMLElement) => {
         function doit() {
@@ -596,10 +603,11 @@ export function run() {
       },
     });
 
+    // hookup data-trigger to click events
     applyTriggers();
 
+    // select full text on focus for these nodes (TODO: move into markup via class "select-on-focus")
     [weightDom, repsDom].forEach(behaviors.selectAllOnFocus);
-    //[exerciseDom].forEach(behaviorClearOnFocus);
 
     adminMenuDom.value = "";
     adminMenuDom.addEventListener("change", () => {
@@ -609,6 +617,9 @@ export function run() {
         adminMenuDom.value = "";
       });
     });
+
+    // show the exercise history grid on startup
+    trigger("update-report");
   });
 
   on("autofill", () => {

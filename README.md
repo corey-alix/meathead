@@ -4,6 +4,8 @@ Weight Training App
 
 ## Version 1.0.3
 
+- Mark exercises to not report 1RM (dry weight, climbing routes, bike routes)
+- Report shortest/longest times (dead hang time vs lap times)
 - Report daily 1RM 1 week out,
   - weekly 1RM, 1 month out
   - monthly 1RM, 3 months out
@@ -24,3 +26,8 @@ Weight Training App
 
 - Specify `weight` and `repititions`
 - Saves Exercise, Weight and Reps to local storage
+
+# Known Issues
+
+- FIXED: After a row edit the grid disappears
+- CANNOT REPRODUCE: Changes are not applied after editing a row
