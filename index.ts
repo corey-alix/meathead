@@ -304,10 +304,10 @@ function updateReport(
   });
 
   // last 35 days aggregated weekly
-  const itemsThisMonth = rows
+  const itemsThisQuarter = rows
     .filter((r) => {
       const week = DateFun.weeksAgo(r.tick);
-      return 0 <= week && week <= 4;
+      return 0 <= week && week <= 12;
     })
     .map((workout) => ({ ...workout, group: DateFun.weeksAgo(workout.tick) }));
 
@@ -327,7 +327,7 @@ function updateReport(
       .join("");
 
   if (false !== exercise?.reportOptions?.show1rm) {
-    html += findMax(itemsThisMonth, compute1RepMaxUsingWathan)
+    html += findMax(itemsThisQuarter, compute1RepMaxUsingWathan)
       .map((r) =>
         createReportRow({
           key: `week(${r.tick})`,
@@ -340,7 +340,7 @@ function updateReport(
   }
 
   if (false !== exercise?.reportOptions?.showmax) {
-    html += findMax(itemsThisMonth, (w, r) => w)
+    html += findMax(itemsThisQuarter, (w, r) => w)
       .map((r) =>
         createReportRow({
           key: `week(${r.tick})`,
@@ -353,7 +353,7 @@ function updateReport(
   }
 
   if (false !== exercise?.reportOptions?.showsum) {
-    html += findSum(itemsThisMonth, (w, r) => w * r)
+    html += findSum(itemsThisQuarter, (w, r) => w * r)
       .map((r) =>
         createReportRow({
           key: `week(${r.tick})`,
