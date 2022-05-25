@@ -10,6 +10,7 @@ interface WorkoutSet {
   weight: number;
   reps: number;
   exerciseDuration: number;
+  location: { lon: number; lat: number };
 }
 
 interface ReportOptions {
@@ -162,6 +163,25 @@ class Database {
 
   getGlobal(key: string) {
     return this.#globals[key];
+  }
+}
+
+class WhereAmI {
+  // returns the coordinates of the current location
+  static getLocation() {
+    return new Promise<{ lat: number; lng: number }>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          reject(error);
+        }
+      );
+    });
   }
 }
 
@@ -549,7 +569,7 @@ export function run() {
     trigger("exercise-clear");
   });
 
-  on("save", () => {
+  on("save", async () => {
     if (!formDom.reportValidity()) return;
 
     const exerciseValue = exerciseDom.value;
@@ -589,7 +609,10 @@ export function run() {
       weight: weightValue,
       reps: repValue,
       exerciseDuration: exerciseStartTime ? Date.now() - exerciseStartTime : 0,
-    };
+    } as WorkoutSet;
+
+    const location = await WhereAmI.getLocation();
+    workout.location = { lon: location.lng, lat: location.lat };
 
     // restart the exercise timer
     if (exerciseStartTime) db.setGlobal("exerciseStartTime", Date.now());
