@@ -2,6 +2,8 @@
 
 Weight Training App
 
+It is presently hosted [here](https://meathead.netlify.app/) on netlify.
+
 ## Version 1.0.4
 
 - Report shortest/longest times (dead hang time vs lap times)
